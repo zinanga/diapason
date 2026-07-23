@@ -11,6 +11,7 @@
   "sidebar": {
     "general": "General",
     "models": "Models",
+    "profiles": "Profiles",
     "advanced": "Advanced",
     "postProcessing": "Post Process",
     "history": "History",
@@ -367,7 +368,38 @@
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
         "description": "Filter silence from recordings. Streaming-capable models use a longer VAD tail; disabling VAD records raw audio."
+      },
+      "antiHallucination": {
+        "title": "Anti-Hallucination Filter",
+        "description": "Filter out common Whisper hallucinations (repeated phrases, spurious captions like \"Thanks for watching\") from transcriptions."
+      },
+      "whisperPrompt": {
+        "title": "Whisper Initial Prompt",
+        "description": "Optional text passed to Whisper as context before transcription. Use it to bias spelling of names, jargon, and punctuation style. Saved when the field loses focus.",
+        "placeholder": "e.g. Glossary: Handy, Tauri, specta. Use full punctuation."
       }
+    },
+    "profiles": {
+      "title": "Transcription Profiles",
+      "description": "Create profiles with their own language, post-processing, and shortcut. Press a profile's shortcut to transcribe with its settings instead of the global ones.",
+      "add": "Add Profile",
+      "empty": "No profiles yet. Add one to get started.",
+      "defaultName": "New Profile",
+      "name": "Name",
+      "nameDescription": "Display name for this profile.",
+      "language": "Language",
+      "languageDescription": "Transcription language used when recording with this profile. \"Use global language\" falls back to the language selected in General settings.",
+      "useGlobalLanguage": "Use global language",
+      "postProcess": "AI Post-Processing",
+      "postProcessDescription": "Run this profile's transcriptions through AI post-processing.",
+      "prompt": "Prompt",
+      "promptDescription": "Post-processing prompt used by this profile. \"Default\" uses the globally selected prompt.",
+      "defaultPrompt": "Default (global prompt)",
+      "translateToEnglish": "Translate to English",
+      "translateToEnglishDescription": "Translate speech from other languages to English when using this profile.",
+      "shortcut": "Shortcut",
+      "shortcutDescription": "Keyboard shortcut that starts a recording with this profile.",
+      "delete": "Delete Profile"
     },
     "postProcessing": {
       "hotkey": {
@@ -615,7 +647,8 @@
     "modelLoadFailedUnknown": "unknown model",
     "pasteFailedTitle": "Failed to Paste Text",
     "pasteFailed": "Text could not be pasted into the active application.",
-    "transcriptionFailedTitle": "Transcription Failed"
+    "transcriptionFailedTitle": "Transcription Failed",
+    "postProcessFailedTitle": "Post-Processing Failed"
   },
   "appLanguage": {
     "title": "Application Language",

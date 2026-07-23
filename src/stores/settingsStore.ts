@@ -6,6 +6,7 @@ import type {
   AudioDevice,
   TranscribeAcceleratorSetting,
   OrtAcceleratorSetting,
+  TranscriptionProfile,
 } from "@/bindings";
 import { commands } from "@/bindings";
 
@@ -164,6 +165,12 @@ const settingUpdaters: {
     commands.changeTranscribeGpuDevice(value as number),
   extra_recording_buffer_ms: (value) =>
     commands.changeExtraRecordingBufferSetting(value as number),
+  whisper_initial_prompt: (value) =>
+    commands.updateWhisperInitialPrompt(value as string),
+  anti_hallucination: (value) =>
+    commands.updateAntiHallucination(value as boolean),
+  transcription_profiles: (value) =>
+    commands.updateTranscriptionProfiles(value as TranscriptionProfile[]),
 };
 
 export const useSettingsStore = create<SettingsStore>()(

@@ -11,6 +11,7 @@
   "sidebar": {
     "general": "General",
     "models": "Modelos",
+    "profiles": "Perfiles",
     "advanced": "Avanzado",
     "postProcessing": "Post proceso",
     "history": "Historial",
@@ -367,7 +368,38 @@
       "voiceActivityDetection": {
         "title": "Detección de actividad de voz",
         "description": "Filtra el silencio de las grabaciones. Los modelos compatibles con streaming usan una cola de VAD más larga; desactivar el VAD graba audio sin procesar."
+      },
+      "antiHallucination": {
+        "title": "Filtro antialucinaciones",
+        "description": "Filtra alucinaciones habituales de Whisper (frases repetidas, subtítulos espurios como \"Gracias por ver el video\") en las transcripciones."
+      },
+      "whisperPrompt": {
+        "title": "Prompt inicial de Whisper",
+        "description": "Texto opcional que se pasa a Whisper como contexto antes de transcribir. Úsalo para orientar la ortografía de nombres, jerga y estilo de puntuación. Se guarda al salir del campo.",
+        "placeholder": "Ej.: Glosario: Handy, Tauri, specta. Usa puntuación completa."
       }
+    },
+    "profiles": {
+      "title": "Perfiles de transcripción",
+      "description": "Crea perfiles con su propio idioma, post-procesado y atajo. Pulsa el atajo de un perfil para transcribir con su configuración en lugar de la global.",
+      "add": "Agregar perfil",
+      "empty": "Todavía no hay perfiles. Agrega uno para empezar.",
+      "defaultName": "Nuevo perfil",
+      "name": "Nombre",
+      "nameDescription": "Nombre visible de este perfil.",
+      "language": "Idioma",
+      "languageDescription": "Idioma de transcripción al grabar con este perfil. \"Usar idioma global\" recurre al idioma seleccionado en los ajustes generales.",
+      "useGlobalLanguage": "Usar idioma global",
+      "postProcess": "Post-procesado con IA",
+      "postProcessDescription": "Pasa las transcripciones de este perfil por el post-procesado con IA.",
+      "prompt": "Prompt",
+      "promptDescription": "Prompt de post-procesado que usa este perfil. \"Predeterminado\" usa el prompt seleccionado globalmente.",
+      "defaultPrompt": "Predeterminado (prompt global)",
+      "translateToEnglish": "Traducir al inglés",
+      "translateToEnglishDescription": "Traduce el habla de otros idiomas al inglés al usar este perfil.",
+      "shortcut": "Atajo",
+      "shortcutDescription": "Atajo de teclado que inicia una grabación con este perfil.",
+      "delete": "Eliminar perfil"
     },
     "postProcessing": {
       "hotkey": {
@@ -612,7 +644,8 @@
     "modelLoadFailedUnknown": "modelo desconocido",
     "pasteFailedTitle": "Error al pegar el texto",
     "pasteFailed": "No se pudo pegar el texto en la aplicación activa.",
-    "transcriptionFailedTitle": "Error de transcripción"
+    "transcriptionFailedTitle": "Error de transcripción",
+    "postProcessFailedTitle": "Error en el post-procesado"
   },
   "appLanguage": {
     "title": "Idioma de la aplicación",

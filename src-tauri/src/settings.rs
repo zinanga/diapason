@@ -93,6 +93,23 @@ pub struct LLMPrompt {
     pub prompt: String,
 }
 
+/// A named transcription preset bound to its own shortcut (`profile:<id>` in
+/// the bindings map). Empty/None fields fall back to the global setting, so a
+/// profile only overrides what it explicitly sets.
+#[derive(Serialize, Deserialize, Debug, Clone, Type)]
+pub struct TranscriptionProfile {
+    pub id: String,
+    pub name: String,
+    /// ASR language override; empty string means "use the global language".
+    pub language: String,
+    /// Whether this profile runs LLM post-processing.
+    pub post_process: bool,
+    /// Prompt override (id into `post_process_prompts`); None uses the
+    /// globally selected prompt.
+    pub prompt_id: Option<String>,
+    pub translate_to_english: bool,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct PostProcessProvider {
     pub id: String,
@@ -464,6 +481,22 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// Free-text context fed to whisper-family models as the initial prompt
+    /// (alongside custom words): proper names, jargon, style hints.
+    #[serde(default)]
+    pub whisper_initial_prompt: String,
+    /// Caps the text context whisper carries between windows
+    /// (max_prev_context_tokens=128) and raises no_speech_thold, which kills
+    /// runaway repetition loops on long silences. Whisper-family models only.
+    #[serde(default = "default_anti_hallucination")]
+    pub anti_hallucination: bool,
+    /// Named transcription presets, each bound to a `profile:<id>` shortcut.
+    #[serde(default)]
+    pub transcription_profiles: Vec<TranscriptionProfile>,
+}
+
+fn default_anti_hallucination() -> bool {
+    true
 }
 
 fn default_model() -> String {
@@ -894,6 +927,9 @@ pub fn get_default_settings() -> AppSettings {
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
         overlay_style: default_overlay_style(),
+        whisper_initial_prompt: String::new(),
+        anti_hallucination: default_anti_hallucination(),
+        transcription_profiles: Vec::new(),
     }
 }
 

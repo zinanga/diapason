@@ -296,6 +296,35 @@ async updateCustomWords(words: string[]) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async updateWhisperInitialPrompt(prompt: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_whisper_initial_prompt", { prompt }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateAntiHallucination(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_anti_hallucination", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Replace the profile list and keep the bindings map in sync: every profile
+ * owns a `profile:<id>` binding (created empty until the user assigns a
+ * shortcut); bindings of removed profiles are unregistered and dropped.
+ */
+async updateTranscriptionProfiles(profiles: TranscriptionProfile[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_transcription_profiles", { profiles }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Temporarily unregister a binding while the user is editing it in the UI.
  * This avoids firing the action while keys are being recorded.
@@ -911,7 +940,22 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle; 
+/**
+ * Free-text context fed to whisper-family models as the initial prompt
+ * (alongside custom words): proper names, jargon, style hints.
+ */
+whisper_initial_prompt?: string; 
+/**
+ * Caps the text context whisper carries between windows
+ * (max_prev_context_tokens=128) and raises no_speech_thold, which kills
+ * runaway repetition loops on long silences. Whisper-family models only.
+ */
+anti_hallucination?: boolean; 
+/**
+ * Named transcription presets, each bound to a `profile:<id>` shortcut.
+ */
+transcription_profiles?: TranscriptionProfile[] }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1021,6 +1065,25 @@ export type StreamWorkKind = "transcribing" | "polishing"
  */
 export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
+/**
+ * A named transcription preset bound to its own shortcut (`profile:<id>` in
+ * the bindings map). Empty/None fields fall back to the global setting, so a
+ * profile only overrides what it explicitly sets.
+ */
+export type TranscriptionProfile = { id: string; name: string; 
+/**
+ * ASR language override; empty string means "use the global language".
+ */
+language: string; 
+/**
+ * Whether this profile runs LLM post-processing.
+ */
+post_process: boolean; 
+/**
+ * Prompt override (id into `post_process_prompts`); None uses the
+ * globally selected prompt.
+ */
+prompt_id: string | null; translate_to_english: boolean }
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
 

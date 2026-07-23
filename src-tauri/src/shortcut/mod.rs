@@ -21,10 +21,11 @@ use tauri_plugin_autostart::ManagerExt;
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
+use crate::actions::PROFILE_BINDING_PREFIX;
 use crate::settings::{
     self, get_settings, AutoSubmitKey, ClipboardHandling, KeyboardImplementation, LLMPrompt,
-    OverlayPosition, OverlayStyle, PasteMethod, ShortcutBinding, SoundTheme, Theme, TypingTool,
-    APPLE_INTELLIGENCE_PROVIDER_ID,
+    OverlayPosition, OverlayStyle, PasteMethod, ShortcutBinding, SoundTheme, Theme,
+    TranscriptionProfile, TypingTool, APPLE_INTELLIGENCE_PROVIDER_ID,
 };
 use crate::tray;
 
@@ -54,6 +55,22 @@ pub fn init_shortcuts(app: &AppHandle) {
             }
         }
     }
+}
+
+/// Profile bindings from settings that have a shortcut assigned. The init
+/// paths iterate the default bindings only, so user-created profile bindings
+/// need their own registration pass.
+pub(crate) fn registered_profile_bindings(
+    settings: &settings::AppSettings,
+) -> Vec<ShortcutBinding> {
+    settings
+        .bindings
+        .values()
+        .filter(|b| {
+            b.id.starts_with(PROFILE_BINDING_PREFIX) && !b.current_binding.trim().is_empty()
+        })
+        .cloned()
+        .collect()
 }
 
 /// Register the cancel shortcut (called when recording starts)
@@ -214,6 +231,11 @@ pub fn reset_binding(app: AppHandle, id: String) -> Result<BindingResponse, Stri
 #[specta::specta]
 pub fn suspend_binding(app: AppHandle, id: String) -> Result<(), String> {
     if let Some(b) = settings::get_bindings(&app).get(&id).cloned() {
+        // Bindings without an assigned shortcut (fresh profiles) have nothing
+        // registered to suspend.
+        if b.current_binding.trim().is_empty() {
+            return Ok(());
+        }
         if let Err(e) = unregister_shortcut(&app, b) {
             error!("suspend_binding error for id '{}': {}", id, e);
             return Err(e);
@@ -227,6 +249,9 @@ pub fn suspend_binding(app: AppHandle, id: String) -> Result<(), String> {
 #[specta::specta]
 pub fn resume_binding(app: AppHandle, id: String) -> Result<(), String> {
     if let Some(b) = settings::get_bindings(&app).get(&id).cloned() {
+        if b.current_binding.trim().is_empty() {
+            return Ok(());
+        }
         if let Err(e) = register_shortcut(&app, b) {
             error!("resume_binding error for id '{}': {}", id, e);
             return Err(e);
@@ -429,6 +454,31 @@ fn register_all_shortcuts_for_implementation(
         if let Err(e) = result {
             error!(
                 "Failed to register shortcut '{}' for {:?}: {}",
+                id, implementation, e
+            );
+        }
+    }
+
+    // Profile bindings are user-created and not part of the defaults. Invalid
+    // ones are skipped (there is no default to reset them to).
+    for binding in registered_profile_bindings(&current_settings) {
+        if let Err(e) =
+            validate_shortcut_for_implementation(&binding.current_binding, implementation)
+        {
+            warn!(
+                "Profile shortcut '{}' ({}) is invalid for {:?}: {}. Skipping.",
+                binding.id, binding.current_binding, implementation, e
+            );
+            continue;
+        }
+        let id = binding.id.clone();
+        let result = match implementation {
+            KeyboardImplementation::Tauri => tauri_impl::register_shortcut(app, binding),
+            KeyboardImplementation::HandyKeys => handy_keys::register_shortcut(app, binding),
+        };
+        if let Err(e) = result {
+            error!(
+                "Failed to register profile shortcut '{}' for {:?}: {}",
                 id, implementation, e
             );
         }
@@ -756,6 +806,79 @@ pub fn change_whats_new_last_seen_version_setting(
 pub fn update_custom_words(app: AppHandle, words: Vec<String>) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.custom_words = words;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_whisper_initial_prompt(app: AppHandle, prompt: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.whisper_initial_prompt = prompt;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_anti_hallucination(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.anti_hallucination = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// Replace the profile list and keep the bindings map in sync: every profile
+/// owns a `profile:<id>` binding (created empty until the user assigns a
+/// shortcut); bindings of removed profiles are unregistered and dropped.
+#[tauri::command]
+#[specta::specta]
+pub fn update_transcription_profiles(
+    app: AppHandle,
+    profiles: Vec<TranscriptionProfile>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+
+    let new_ids: std::collections::HashSet<String> = profiles
+        .iter()
+        .map(|p| format!("{}{}", PROFILE_BINDING_PREFIX, p.id))
+        .collect();
+
+    let removed: Vec<ShortcutBinding> = settings
+        .bindings
+        .iter()
+        .filter(|(id, _)| id.starts_with(PROFILE_BINDING_PREFIX) && !new_ids.contains(*id))
+        .map(|(_, b)| b.clone())
+        .collect();
+    for binding in removed {
+        if !binding.current_binding.trim().is_empty() {
+            if let Err(e) = unregister_shortcut(&app, binding.clone()) {
+                warn!(
+                    "Failed to unregister removed profile shortcut '{}': {}",
+                    binding.id, e
+                );
+            }
+        }
+        settings.bindings.remove(&binding.id);
+    }
+
+    for profile in &profiles {
+        let binding_id = format!("{}{}", PROFILE_BINDING_PREFIX, profile.id);
+        let name = profile.name.clone();
+        settings
+            .bindings
+            .entry(binding_id.clone())
+            .and_modify(|b| b.name = name.clone())
+            .or_insert_with(|| ShortcutBinding {
+                id: binding_id,
+                name,
+                description: "Transcribe using this profile.".to_string(),
+                default_binding: String::new(),
+                current_binding: String::new(),
+            });
+    }
+
+    settings.transcription_profiles = profiles;
     settings::write_settings(&app, settings);
     Ok(())
 }

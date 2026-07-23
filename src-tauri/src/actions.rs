@@ -7,7 +7,9 @@ use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
+use crate::settings::{
+    get_settings, AppSettings, OverlayStyle, TranscriptionProfile, APPLE_INTELLIGENCE_PROVIDER_ID,
+};
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils::{
@@ -19,7 +21,7 @@ use log::{debug, error, warn};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::future::Future;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::Manager;
 use tauri::{AppHandle, Emitter};
@@ -52,6 +54,58 @@ pub trait ShortcutAction: Send + Sync {
 // Transcribe Action
 struct TranscribeAction {
     post_process: bool,
+    /// When true the binding id carries a profile (`profile:<id>`) whose
+    /// overrides apply to this recording session.
+    from_profile: bool,
+}
+
+pub const PROFILE_BINDING_PREFIX: &str = "profile:";
+
+/// Profile chosen by the most recently started recording. Set (or cleared) on
+/// every TranscribeAction::start; the coordinator serializes sessions, so the
+/// value always belongs to the in-flight transcription.
+static ACTIVE_PROFILE: Lazy<Mutex<Option<TranscriptionProfile>>> = Lazy::new(|| Mutex::new(None));
+
+pub fn active_profile() -> Option<TranscriptionProfile> {
+    ACTIVE_PROFILE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+}
+
+/// Overlay the active profile (if any) onto a settings snapshot. Empty/None
+/// profile fields keep the global value.
+pub fn apply_profile_overrides(settings: &mut AppSettings) {
+    let Some(profile) = active_profile() else {
+        return;
+    };
+    if !profile.language.trim().is_empty() {
+        settings.selected_language = profile.language.clone();
+    }
+    settings.translate_to_english = profile.translate_to_english;
+    if profile.prompt_id.is_some() {
+        settings.post_process_selected_prompt_id = profile.prompt_id.clone();
+    }
+}
+
+/// Resolve a binding id to its action. Profile bindings (`profile:<id>`) are
+/// resolved dynamically so profiles can be created without touching the static
+/// ACTION_MAP.
+pub fn action_for_binding(binding_id: &str) -> Option<Arc<dyn ShortcutAction>> {
+    if binding_id.starts_with(PROFILE_BINDING_PREFIX) {
+        return Some(Arc::new(TranscribeAction {
+            post_process: false,
+            from_profile: true,
+        }));
+    }
+    ACTION_MAP.get(binding_id).cloned()
+}
+
+fn emit_post_process_error(app: &AppHandle, reason: &str) {
+    error!("Post-processing failed: {}", reason);
+    if let Err(e) = app.emit("post-process-error", reason.to_string()) {
+        error!("Failed to emit post-process-error event: {}", e);
+    }
 }
 
 /// Field name for structured output JSON schema
@@ -101,7 +155,11 @@ fn should_use_streaming_overlay(style: OverlayStyle, is_streaming: bool) -> bool
     style == OverlayStyle::Live && is_streaming
 }
 
-async fn post_process_transcription(settings: &AppSettings, transcription: &str) -> Option<String> {
+async fn post_process_transcription(
+    app: &AppHandle,
+    settings: &AppSettings,
+    transcription: &str,
+) -> Option<String> {
     if is_blank_transcription(transcription) {
         debug!("Post-processing skipped because the transcription is empty");
         return None;
@@ -110,7 +168,7 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
     let provider = match settings.active_post_process_provider().cloned() {
         Some(provider) => provider,
         None => {
-            debug!("Post-processing enabled but no provider is selected");
+            emit_post_process_error(app, "No post-processing provider is selected");
             return None;
         }
     };
@@ -122,9 +180,9 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
         .unwrap_or_default();
 
     if model.trim().is_empty() {
-        debug!(
-            "Post-processing skipped because provider '{}' has no model configured",
-            provider.id
+        emit_post_process_error(
+            app,
+            &format!("Provider '{}' has no model configured", provider.id),
         );
         return None;
     }
@@ -132,7 +190,7 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
     let selected_prompt_id = match &settings.post_process_selected_prompt_id {
         Some(id) => id.clone(),
         None => {
-            debug!("Post-processing skipped because no prompt is selected");
+            emit_post_process_error(app, "No post-processing prompt is selected");
             return None;
         }
     };
@@ -144,16 +202,13 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
     {
         Some(prompt) => prompt.prompt.clone(),
         None => {
-            debug!(
-                "Post-processing skipped because prompt '{}' was not found",
-                selected_prompt_id
-            );
+            emit_post_process_error(app, "The selected post-processing prompt no longer exists");
             return None;
         }
     };
 
     if prompt.trim().is_empty() {
-        debug!("Post-processing skipped because the selected prompt is empty");
+        emit_post_process_error(app, "The selected post-processing prompt is empty");
         return None;
     }
 
@@ -195,8 +250,9 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
             #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
             {
                 if !apple_intelligence::check_apple_intelligence_availability() {
-                    debug!(
-                        "Apple Intelligence selected but not currently available on this device"
+                    emit_post_process_error(
+                        app,
+                        "Apple Intelligence is not currently available on this device",
                     );
                     return None;
                 }
@@ -221,7 +277,10 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
                         }
                     }
                     Err(err) => {
-                        error!("Apple Intelligence post-processing failed: {}", err);
+                        emit_post_process_error(
+                            app,
+                            &format!("Apple Intelligence failed: {}", err),
+                        );
                         None
                     }
                 };
@@ -288,7 +347,7 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
                 }
             }
             Ok(None) => {
-                error!("LLM API response has no content");
+                emit_post_process_error(app, "The LLM API response had no content");
                 return None;
             }
             Err(e) => {
@@ -325,14 +384,13 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
             Some(content)
         }
         Ok(None) => {
-            error!("LLM API response has no content");
+            emit_post_process_error(app, "The LLM API response had no content");
             None
         }
         Err(e) => {
-            error!(
-                "LLM post-processing failed for provider '{}': {}. Falling back to original transcription.",
-                provider.id,
-                e
+            emit_post_process_error(
+                app,
+                &format!("Provider '{}' request failed: {}", provider.id, e),
             );
             None
         }
@@ -419,7 +477,10 @@ pub(crate) async fn process_transcription_output(
     transcription: &str,
     post_process: bool,
 ) -> ProcessedTranscription {
-    let settings = get_settings(app);
+    let mut settings = get_settings(app);
+    // Per-profile prompt/language overrides for this transcription session.
+    apply_profile_overrides(&mut settings);
+    let settings = settings;
     let mut final_text = transcription.to_string();
     let mut post_processed_text: Option<String> = None;
     let mut post_process_prompt: Option<String> = None;
@@ -435,7 +496,8 @@ pub(crate) async fn process_transcription_output(
     }
 
     if post_process {
-        if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
+        if let Some(processed_text) = post_process_transcription(app, &settings, &final_text).await
+        {
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
 
@@ -464,6 +526,27 @@ impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
+
+        // Resolve and pin the profile for this recording session. Non-profile
+        // bindings clear it so stale overrides never leak into a plain
+        // transcription.
+        let session_profile = if self.from_profile {
+            let profile_id = binding_id
+                .strip_prefix(PROFILE_BINDING_PREFIX)
+                .unwrap_or_default();
+            let profile = get_settings(app)
+                .transcription_profiles
+                .iter()
+                .find(|p| p.id == profile_id)
+                .cloned();
+            if profile.is_none() {
+                warn!("No transcription profile found for binding '{}'", binding_id);
+            }
+            profile
+        } else {
+            None
+        };
+        *ACTIVE_PROFILE.lock().unwrap_or_else(|e| e.into_inner()) = session_profile;
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
@@ -644,7 +727,11 @@ impl ShortcutAction for TranscribeAction {
         play_feedback_sound(app, SoundType::Stop);
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
-        let post_process = self.post_process;
+        // Profile sessions decide post-processing per profile; plain bindings
+        // keep their static flag.
+        let post_process = active_profile()
+            .map(|p| p.post_process)
+            .unwrap_or(self.post_process);
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -908,11 +995,15 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         "transcribe".to_string(),
         Arc::new(TranscribeAction {
             post_process: false,
+            from_profile: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "transcribe_with_post_process".to_string(),
-        Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
+        Arc::new(TranscribeAction {
+            post_process: true,
+            from_profile: false,
+        }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "cancel".to_string(),

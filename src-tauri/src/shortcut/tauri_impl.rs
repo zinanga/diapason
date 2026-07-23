@@ -37,6 +37,17 @@ pub fn init_shortcuts(app: &AppHandle) {
             error!("Failed to register shortcut {} during init: {}", id, e);
         }
     }
+
+    // Profile bindings are user-created and not part of the defaults.
+    for binding in super::registered_profile_bindings(&user_settings) {
+        let id = binding.id.clone();
+        if let Err(e) = register_shortcut(app, binding) {
+            error!(
+                "Failed to register profile shortcut {} during init: {}",
+                id, e
+            );
+        }
+    }
 }
 
 /// Validate a shortcut string for the Tauri global-shortcut implementation.

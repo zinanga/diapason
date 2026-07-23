@@ -64,17 +64,23 @@ fn paste_via_clipboard(
 
     std::thread::sleep(Duration::from_millis(paste_delay_after_ms));
 
-    // Restore original clipboard content
+    // Restore original clipboard content. A failure here means the user's
+    // previous clipboard is lost — not fatal to the paste, but worth surfacing
+    // in the log with its cause instead of discarding it.
     // On Wayland, prefer wl-copy for better compatibility
     #[cfg(target_os = "linux")]
     if is_wayland() && is_wl_copy_available() {
-        let _ = write_clipboard_via_wl_copy(&clipboard_content);
-    } else {
-        let _ = clipboard.write_text(&clipboard_content);
+        if let Err(e) = write_clipboard_via_wl_copy(&clipboard_content) {
+            log::warn!("Failed to restore clipboard via wl-copy: {}", e);
+        }
+    } else if let Err(e) = clipboard.write_text(&clipboard_content) {
+        log::warn!("Failed to restore original clipboard content: {}", e);
     }
 
     #[cfg(not(target_os = "linux"))]
-    let _ = clipboard.write_text(&clipboard_content);
+    if let Err(e) = clipboard.write_text(&clipboard_content) {
+        log::warn!("Failed to restore original clipboard content: {}", e);
+    }
 
     Ok(())
 }

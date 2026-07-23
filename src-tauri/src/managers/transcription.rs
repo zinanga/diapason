@@ -1136,7 +1136,11 @@ impl TranscriptionManager {
         }
 
         // Get current settings for configuration
-        let settings = get_settings(&self.app_handle);
+        let mut settings = get_settings(&self.app_handle);
+        // Apply per-profile overrides (language, translate) pinned by the
+        // shortcut that started this recording session.
+        crate::actions::apply_profile_overrides(&mut settings);
+        let settings = settings;
 
         // Validate selected language against the model's supported languages.
         // If the language isn't supported, fall back to "auto" to prevent errors.
@@ -1221,18 +1225,39 @@ impl TranscriptionManager {
             let transcribe_result = catch_unwind(AssertUnwindSafe(|| -> Result<String> {
                 match &mut engine {
                     LoadedEngine::TranscribeCpp(session) => {
-                        // Custom words become the initial prompt ONLY for models
-                        // that accept one (whisper family). Attaching the
-                        // whisper run extension to a non-whisper arch is rejected
-                        // with INVALID_ARG, so skip it there and let the fuzzy
-                        // post-correction handle custom words instead.
-                        let family = if settings.custom_words.is_empty() || !model_is_whisper {
+                        // Custom words and the user's context prompt become the
+                        // initial prompt ONLY for models that accept one
+                        // (whisper family). Attaching the whisper run extension
+                        // to a non-whisper arch is rejected with INVALID_ARG,
+                        // so skip it there and let the fuzzy post-correction
+                        // handle custom words instead.
+                        let mut prompt_parts: Vec<String> = Vec::new();
+                        if !settings.custom_words.is_empty() {
+                            prompt_parts.push(settings.custom_words.join(", "));
+                        }
+                        let user_prompt = settings.whisper_initial_prompt.trim();
+                        if !user_prompt.is_empty() {
+                            prompt_parts.push(user_prompt.to_string());
+                        }
+
+                        let wants_whisper_extension =
+                            !prompt_parts.is_empty() || settings.anti_hallucination;
+                        let family = if !model_is_whisper || !wants_whisper_extension {
                             None
                         } else {
-                            Some(RunExtension::Whisper(WhisperRunOptions {
-                                initial_prompt: Some(settings.custom_words.join(", ")),
-                                ..Default::default()
-                            }))
+                            let mut opts = WhisperRunOptions::default();
+                            if !prompt_parts.is_empty() {
+                                opts.initial_prompt = Some(prompt_parts.join(". "));
+                            }
+                            if settings.anti_hallucination {
+                                // Cap the carried text context and require a
+                                // stronger speech signal: whisper's runaway
+                                // repetition loops feed on long unbounded
+                                // context over near-silence windows.
+                                opts.max_prev_context_tokens = Some(128);
+                                opts.no_speech_thold = Some(0.6);
+                            }
+                            Some(RunExtension::Whisper(opts))
                         };
 
                         let run_plan = transcribe_cpp_run_plan(

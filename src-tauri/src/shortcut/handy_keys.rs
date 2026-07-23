@@ -452,6 +452,16 @@ pub fn init_shortcuts(app: &AppHandle) -> Result<(), String> {
         }
     }
 
+    // Profile bindings are user-created and not part of the defaults.
+    for binding in super::registered_profile_bindings(&user_settings) {
+        if let Err(e) = state.register(&binding) {
+            error!(
+                "Failed to register handy-keys profile shortcut {} during init: {}",
+                binding.id, e
+            );
+        }
+    }
+
     app.manage(state);
     info!("handy-keys shortcuts initialized");
     Ok(())
