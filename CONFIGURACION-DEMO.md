@@ -175,15 +175,17 @@ audio dieron exactamente el mismo tiempo de post-proceso. Es coste fijo.
 Acortar el prompt de 200 a 60 tokens ganó 3 segundos. Seguir acortándolo no
 ganó nada más. **El suelo son 8 segundos.**
 
-### De dónde sale el coste fijo
+### Hipótesis sobre el coste fijo — NO verificada
 
-En `src-tauri/swift/apple_intelligence.swift`:
+Lo que sigue **no está instrumentado**: sale de leer
+`src-tauri/swift/apple_intelligence.swift`, no de medir. Se documenta como
+punto de partida para quien quiera investigarlo, no como causa demostrada.
 
 1. Se crea un `LanguageModelSession` **nuevo en cada llamada**, con las
    instrucciones dentro. No hay sesión reutilizada, así que el prompt se
    vuelve a procesar en cada dictado.
 2. Se intenta primero generación estructurada y, si lanza, el `catch` hace
-   **una segunda inferencia completa**:
+   una segunda inferencia completa:
    ```swift
    do {
        let structured = try await session.respond(to: ..., generating: CleanedTranscript.self)
@@ -191,9 +193,29 @@ En `src-tauri/swift/apple_intelligence.swift`:
        let fallbackGeneration = try await session.respond(to: ...)  // 2ª llamada entera
    }
    ```
+   **No hay ningún log que distinga si la estructurada tuvo éxito o si se cayó
+   al `catch`.** Que se estén pagando dos inferencias es una suposición.
 
-Arreglarlo obliga a tocar el puente Swift y recompilar. No se hizo por estar
-a cuatro días de la entrega y no ser código propio del proyecto.
+Cómo zanjarlo (~20 min, trabajo de después de la entrega): añadir una traza en
+la rama `catch`, recompilar el puente y dictar dos veces. Si efectivamente son
+dos llamadas, quitar el intento estructurado dejaría la latencia sobre los 4 s,
+lo que cambiaría si la función es utilizable o no.
+
+Tampoco se probó con entrada en inglés, así que se desconoce si el fallo de la
+generación estructurada es específico del español.
+
+### Lo que sí está medido, y lo que no
+
+| Afirmación | Estado |
+|---|---|
+| 8 s constantes en este equipo | medido, repetido |
+| No escala con la duración del audio (3,45 s vs 6,75 s) | medido |
+| Bajar el prompt de 200 a 60 tokens quita 3 s; de 60 a 30 no quita nada | medido |
+| Whisper en 0,13-0,29 s | medido |
+| Se compiló el puente real, no los stubs (`build.rs` los sustituye si solo hay Command Line Tools) | verificado en el log de build |
+| Swift compilado con `-O` pese a estar en `tauri dev` | verificado en `build.rs` |
+| La causa es la doble inferencia | **hipótesis** |
+| Reutilizar la sesión ayudaría | **sin probar** |
 
 ### Cómo escribir prompts para el modelo local
 
