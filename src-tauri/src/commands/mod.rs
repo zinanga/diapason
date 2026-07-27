@@ -127,6 +127,25 @@ pub fn check_apple_intelligence_available() -> bool {
     }
 }
 
+/// ¿El modelo cargado es de la familia Whisper?
+///
+/// La antialucinación (M1) y el prompt de vocabulario (M2) solo se aplican con
+/// modelos whisper: adjuntar la extensión a otra arquitectura la rechaza con
+/// INVALID_ARG, así que el código la omite. Sin esta consulta, la interfaz
+/// mostraría esos ajustes como activos mientras el motor los ignora — justo lo
+/// contrario de M3, que existe para que los fallos se vean.
+///
+/// `None` significa que aún no hay modelo cargado, no que no sea whisper.
+#[specta::specta]
+#[tauri::command]
+pub fn loaded_model_is_whisper(app: AppHandle) -> Option<bool> {
+    use crate::managers::transcription::TranscriptionManager;
+    use tauri::Manager;
+
+    app.try_state::<std::sync::Arc<TranscriptionManager>>()
+        .and_then(|manager| manager.loaded_model_is_whisper())
+}
+
 /// Try to initialize Enigo (keyboard/mouse simulation).
 /// On macOS, this will return an error if accessibility permissions are not granted.
 #[specta::specta]

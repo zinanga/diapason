@@ -1789,7 +1789,27 @@ impl ModelManager {
         // (~8 MB/s observed per stream), so we stack several to approach the
         // link's real bandwidth. 8 stays light on CPU/RAM (~80 MB peak buffers)
         // even on older machines and is browser-like in connection count.
+        // Petición ANÓNIMA a propósito. `ApiBuilder::from_env()` hereda el token
+        // que `Cache::token()` encuentre en ~/.cache/huggingface/token, y lo
+        // manda en la cabecera Authorization. Si ese token está caducado o
+        // revocado, el Hub responde 401 a un repositorio PÚBLICO que en anónimo
+        // habría servido sin problema. Confirmado por A/B: con el fichero
+        // presente, 401; renombrado, descarga correcta. Misma máquina y red.
+        //
+        // Todos los modelos del catálogo son públicos, así que no hace falta
+        // credencial. `with_token(None)` se aplica al final y pisa cualquier
+        // origen (fichero hoy; variables de entorno si el crate las añadiera).
+        //
+        // Se conserva `from_env()` porque también resuelve HF_HOME y
+        // HF_ENDPOINT, que sí queremos respetar: son rutas, no credenciales.
+        //
+        // Si alguna vez hiciera falta un repositorio privado, la credencial se
+        // pasa explícitamente en esa llamada concreta, nunca de forma global:
+        // el comportamiento de la app no debe depender de lo que cada máquina
+        // tenga instalado, y enviar el token del usuario cuando no hace falta
+        // es filtrar una credencial sin motivo.
         let api = ApiBuilder::from_env()
+            .with_token(None)
             .with_progress(false)
             .with_max_files(8)
             .build()

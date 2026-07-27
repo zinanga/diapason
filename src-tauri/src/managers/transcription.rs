@@ -367,6 +367,28 @@ impl TranscriptionManager {
         self.lock_engine().is_some() || self.active_engine_lease.load(Ordering::Acquire) != 0
     }
 
+    /// ¿El modelo cargado es de la familia Whisper?
+    ///
+    /// Es la misma comprobación que decide si se adjunta la extensión de
+    /// whisper durante la transcripción (`model.arch() == "whisper"`), y de ella
+    /// dependen la antialucinación y el prompt de vocabulario: con otra
+    /// arquitectura, esas dos opciones se ignoran porque adjuntar la extensión
+    /// la rechazaría con INVALID_ARG.
+    ///
+    /// Se expone para que la interfaz pueda desactivar esos ajustes con una
+    /// explicación en vez de aceptarlos y no aplicarlos en silencio.
+    ///
+    /// `None` = no hay modelo cargado todavía, así que no se puede saber. La UI
+    /// debe tratarlo como "aún no lo sé", no como "no es whisper".
+    pub fn loaded_model_is_whisper(&self) -> Option<bool> {
+        match &*self.lock_engine() {
+            Some(LoadedEngine::TranscribeCpp(session)) => Some(session.model().arch() == "whisper"),
+            // Otros motores (ONNX: parakeet, moonshine…) nunca son whisper.
+            Some(_) => Some(false),
+            None => None,
+        }
+    }
+
     /// Accelerator changes should not disturb the current transcription. Mark
     /// the cached engine stale; the next model-use path reloads it with the
     /// latest settings.

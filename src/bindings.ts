@@ -591,6 +591,20 @@ async checkAppleIntelligenceAvailable() : Promise<boolean> {
     return await TAURI_INVOKE("check_apple_intelligence_available");
 },
 /**
+ * ¿El modelo cargado es de la familia Whisper?
+ * 
+ * La antialucinación (M1) y el prompt de vocabulario (M2) solo se aplican con
+ * modelos whisper: adjuntar la extensión a otra arquitectura la rechaza con
+ * INVALID_ARG, así que el código la omite. Sin esta consulta, la interfaz
+ * mostraría esos ajustes como activos mientras el motor los ignora — justo lo
+ * contrario de M3, que existe para que los fallos se vean.
+ * 
+ * `None` significa que aún no hay modelo cargado, no que no sea whisper.
+ */
+async loadedModelIsWhisper() : Promise<boolean | null> {
+    return await TAURI_INVOKE("loaded_model_is_whisper");
+},
+/**
  * Try to initialize Enigo (keyboard/mouse simulation).
  * On macOS, this will return an error if accessibility permissions are not granted.
  */
