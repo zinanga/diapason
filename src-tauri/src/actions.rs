@@ -540,7 +540,10 @@ impl ShortcutAction for TranscribeAction {
                 .find(|p| p.id == profile_id)
                 .cloned();
             if profile.is_none() {
-                warn!("No transcription profile found for binding '{}'", binding_id);
+                warn!(
+                    "No transcription profile found for binding '{}'",
+                    binding_id
+                );
             }
             profile
         } else {
@@ -727,8 +730,8 @@ impl ShortcutAction for TranscribeAction {
         play_feedback_sound(app, SoundType::Stop);
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
-        // Profile sessions decide post-processing per profile; plain bindings
-        // keep their static flag.
+                                                 // Profile sessions decide post-processing per profile; plain bindings
+                                                 // keep their static flag.
         let post_process = active_profile()
             .map(|p| p.post_process)
             .unwrap_or(self.post_process);
