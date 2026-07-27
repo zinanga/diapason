@@ -1,8 +1,8 @@
 [package]
 name = "handy"
 version = "0.3.0"
-description = "Handy"
-authors = ["cjpais"]
+description = "Dictado por voz 100% local, español-first. Fork de Handy."
+authors = ["Angel Zinsel", "Fer", "CJ Pais (Handy, proyecto original)"]
 edition = "2021"
 license = "MIT"
 default-run = "handy"
