@@ -16,19 +16,19 @@ const variantStyles: Record<
   { container: string; icon: string; text: string }
 > = {
   error: {
-    container: "bg-red-500/10",
-    icon: "text-red-500",
-    text: "text-red-400",
+    container: "bg-danger/10",
+    icon: "text-danger",
+    text: "text-danger",
   },
   warning: {
-    container: "bg-yellow-500/10",
-    icon: "text-yellow-500",
-    text: "text-yellow-400",
+    container: "bg-accent-amber/10",
+    icon: "text-accent-amber",
+    text: "text-accent-amber",
   },
   info: {
-    container: "bg-blue-500/10",
-    icon: "text-blue-500",
-    text: "text-blue-400",
+    container: "bg-background-ui/10",
+    icon: "text-background-ui",
+    text: "text-background-ui",
   },
   success: {
     container: "bg-green-500/10",

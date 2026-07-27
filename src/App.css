@@ -5,8 +5,15 @@
    utilities */
 @theme inline {
   --color-text: var(--color-text);
+  --color-text-2: var(--color-text-2);
   --color-background: var(--color-background);
   --color-background-ui: var(--color-background-ui);
+  --color-surface: var(--color-surface);
+  --color-surface-alt: var(--color-surface-alt);
+  --color-line: var(--color-line);
+  --color-selected: var(--color-selected);
+  --color-accent-amber: var(--color-accent-amber);
+  --color-danger: var(--color-danger);
   --color-logo-primary: var(--color-logo-primary);
   --color-logo-stroke: var(--color-logo-stroke);
   --color-text-stroke: var(--color-text-stroke);
@@ -68,14 +75,26 @@
  */
 :root[data-theme="light"] {
   --color-text: var(--light-color-text);
+  --color-text-2: var(--light-color-text-2);
   --color-background: var(--light-color-background);
+  --color-surface: var(--light-color-surface);
+  --color-surface-alt: var(--light-color-surface-alt);
+  --color-line: var(--light-color-line);
+  --color-mid-gray: var(--light-color-mid-gray);
+  --color-selected: var(--light-color-selected);
   --color-logo-primary: var(--light-color-logo-primary);
   --color-logo-stroke: var(--light-color-logo-stroke);
 }
 
 :root[data-theme="dark"] {
   --color-text: var(--dark-color-text);
+  --color-text-2: var(--dark-color-text-2);
   --color-background: var(--dark-color-background);
+  --color-surface: var(--dark-color-surface);
+  --color-surface-alt: var(--dark-color-surface-alt);
+  --color-line: var(--dark-color-line);
+  --color-mid-gray: var(--dark-color-mid-gray);
+  --color-selected: var(--dark-color-selected);
   --color-logo-primary: var(--dark-color-logo-primary);
   --color-logo-stroke: var(--dark-color-logo-stroke);
 }

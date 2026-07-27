@@ -1,36 +1,84 @@
-/* Handy Colors */
+/* Diapasón — paleta
+ *
+ * Fuente: el sistema de diseño "Diapasón UI" (Claude Design). Nomenclatura del
+ * diseño original y su equivalente aquí:
+ *
+ *   paper    fondo de la ventana        -> --color-background
+ *   paper-2  superficies elevadas       -> --color-surface
+ *   line     bordes de 0,5 px           -> --color-line
+ *   ink      texto principal            -> --color-text
+ *   ink-2    texto atenuado             -> --color-mid-gray
+ *   azul     acento (selección, foco)   -> --color-background-ui
+ *   ámbar    acento de marca (diapasón) -> --color-logo-primary
+ *
+ * Principio del diseño, y es el que más cambia respecto a Handy original:
+ * NO hay sombras ni degradados. La jerarquía la dan los bordes de 0,5 px y los
+ * cambios de superficie. Si algo necesita destacar, va sobre --color-surface con
+ * un borde --color-line, nunca con box-shadow.
+ *
+ * Los dos acentos (azul y ámbar) son idénticos en claro y oscuro a propósito:
+ * la marca no cambia de color con el tema.
+ */
 
 :root {
-  /* Palette source of truth. Each themed color is defined once as a
-     light/dark pair; the active tokens below and the `data-theme` overrides
-     in App.css reference these, so a hex value lives in exactly one place. */
-  --light-color-text: #0f0f0f;
-  --light-color-background: #fbfbfb;
-  --light-color-logo-primary: #faa2ca;
-  --light-color-logo-stroke: #382731;
+  /* --- MODO CLARO -------------------------------------------------------- */
+  --light-color-background: #f7f5f0; /* paper */
+  --light-color-surface: #f0ede6; /* paper-2 */
+  --light-color-surface-alt: #efece4;
+  --light-color-line: #d8d3c8; /* line */
+  --light-color-text: #14181f; /* ink */
+  --light-color-text-2: #2c3440;
+  --light-color-mid-gray: #5a6472; /* ink-2 */
+  --light-color-selected: #e3ebf5; /* fila seleccionada */
 
-  --dark-color-text: #fbfbfb;
-  --dark-color-background: #2c2b29;
-  --dark-color-logo-primary: #f28cbb;
-  --dark-color-logo-stroke: #fad1ed;
+  /* --- MODO OSCURO ------------------------------------------------------- */
+  --dark-color-background: #14181f; /* paper */
+  --dark-color-surface: #1c222c; /* paper-2 */
+  --dark-color-surface-alt: #1c222c;
+  --dark-color-line: #2c3440; /* line */
+  --dark-color-text: #f0ede6; /* ink */
+  --dark-color-text-2: #d8d3c8;
+  --dark-color-mid-gray: #98a2b3; /* ink-2 */
+  --dark-color-selected: #1b2b3f; /* fila seleccionada */
 
-  /* Tokens that do not change between light and dark */
-  --color-background-ui: #da5893;
-  --color-text-stroke: #f6f6f6;
-  --color-mid-gray: #808080;
+  /* --- ACENTOS: iguales en ambos modos ----------------------------------- */
+  --color-background-ui: #2364aa; /* azul: selección, foco, interruptores */
+  --color-accent-amber: #c8862a; /* ámbar: marca, caña del diapasón */
+  --color-danger: #b3382c; /* rojo: borrar, errores */
 
-  /* Active palette — defaults to light, follows the OS via the media query
-     below, or is forced by `data-theme` (see App.css). */
-  --color-text: var(--light-color-text);
+  /* El logo es el diapasón: horquilla en tinta, caña en ámbar. */
+  --light-color-logo-primary: #c8862a;
+  --light-color-logo-stroke: #14181f;
+  --dark-color-logo-primary: #c8862a;
+  --dark-color-logo-stroke: #f0ede6;
+
+  --color-text-stroke: #f7f5f0;
+
+  /* --- PALETA ACTIVA -----------------------------------------------------
+     Por defecto claro; sigue al sistema con la media query de abajo, o la
+     fuerza `data-theme` (ver App.css). */
   --color-background: var(--light-color-background);
+  --color-surface: var(--light-color-surface);
+  --color-surface-alt: var(--light-color-surface-alt);
+  --color-line: var(--light-color-line);
+  --color-text: var(--light-color-text);
+  --color-text-2: var(--light-color-text-2);
+  --color-mid-gray: var(--light-color-mid-gray);
+  --color-selected: var(--light-color-selected);
   --color-logo-primary: var(--light-color-logo-primary);
   --color-logo-stroke: var(--light-color-logo-stroke);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-text: var(--dark-color-text);
     --color-background: var(--dark-color-background);
+    --color-surface: var(--dark-color-surface);
+    --color-surface-alt: var(--dark-color-surface-alt);
+    --color-line: var(--dark-color-line);
+    --color-text: var(--dark-color-text);
+    --color-text-2: var(--dark-color-text-2);
+    --color-mid-gray: var(--dark-color-mid-gray);
+    --color-selected: var(--dark-color-selected);
     --color-logo-primary: var(--dark-color-logo-primary);
     --color-logo-stroke: var(--dark-color-logo-stroke);
   }

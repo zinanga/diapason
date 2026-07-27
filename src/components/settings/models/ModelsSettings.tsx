@@ -293,7 +293,7 @@ export const ModelsSettings: React.FC = () => {
                   </button>
 
                   {languageDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-56 bg-background border border-mid-gray/80 rounded-lg shadow-lg z-50 overflow-hidden">
+                    <div className="absolute top-full right-0 mt-1 w-56 bg-surface border border-mid-gray/80 rounded-lg z-50 overflow-hidden">
                       <div className="p-2 border-b border-mid-gray/40">
                         <input
                           ref={languageSearchInputRef}

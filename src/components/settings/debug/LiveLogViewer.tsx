@@ -48,13 +48,13 @@ const LEVEL_META: Record<
   },
   4: {
     tag: "WARN",
-    tagClass: "text-amber-600 dark:text-amber-400",
-    msgClass: "text-amber-700 dark:text-amber-300",
+    tagClass: "text-accent-amber",
+    msgClass: "text-accent-amber",
   },
   5: {
     tag: "ERROR",
-    tagClass: "text-red-600 dark:text-red-400",
-    msgClass: "text-red-700 dark:text-red-300",
+    tagClass: "text-danger",
+    msgClass: "text-danger",
   },
 };
 
