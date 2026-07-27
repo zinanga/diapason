@@ -51,7 +51,7 @@ Antes de esto, esa sección no existe en la interfaz.
 
 ### 4. Proveedor de post-proceso → Apple Intelligence
 
-> Barra lateral → **Post proceso** → desplegable **"Proveedor"** → *Apple Intelligence*
+> Barra lateral → **Post proceso** → desplegable **"Proveedor"** → _Apple Intelligence_
 
 Ajuste: `post_process_provider_id` (por defecto `"openai"`).
 
@@ -117,7 +117,7 @@ mientras la pantalla que configura ese proveedor ni siquiera es visible en la
 interfaz. Configuración invisible, comportamiento activo.
 
 Si alguien pregunta "¿esto sale a internet?", la respuesta honesta con la
-configuración por defecto es *"depende de un ajuste que la interfaz te oculta"*.
+configuración por defecto es _"depende de un ajuste que la interfaz te oculta"_.
 Poner el proveedor en Apple Intelligence lo vuelve irrelevante.
 
 ---
@@ -154,7 +154,7 @@ rehacer el interruptor de la interfaz como tri-estado.
 
 **Esto se aparta de Handy original y es deliberado.** Si alguien quiere volver
 al comportamiento de upstream, el interruptor está en
-*Debug → "Micrófono siempre activo"*, y el valor por defecto en
+_Debug → "Micrófono siempre activo"_, y el valor por defecto en
 `src-tauri/src/settings.rs`, función `default_always_on_microphone()`.
 
 ### El problema que resuelve
@@ -174,10 +174,10 @@ cambia de sentido.
 Con un DJI Mic Mini (inalámbrico) y el modelo Canary-180m, dictando frases que
 empiezan por «No»:
 
-| Condición | Aciertos |
-|---|---|
-| Bajo demanda, hablando encima de la pulsación | **2 de 7** |
-| Bajo demanda, con media pausa antes de hablar | 4 de 4 |
+| Condición                                     | Aciertos                |
+| --------------------------------------------- | ----------------------- |
+| Bajo demanda, hablando encima de la pulsación | **2 de 7**              |
+| Bajo demanda, con media pausa antes de hablar | 4 de 4                  |
 | **Micrófono siempre activo, hablando encima** | **prácticamente todos** |
 
 La pausa también funcionaba, pero tenía su propio precio: el modelo interpreta
@@ -215,16 +215,16 @@ app empaquetada (build de release).
 
 Tanda de ocho dictados seguidos, sin reiniciar la app:
 
-| Audio dictado | Post-proceso | Recargo |
-|---|---|---|
-| 8,19 s | 8 s | 100 % |
-| 9,12 s | 8 s | 88 % |
-| 9,39 s | 8 s | 85 % |
-| 11,82 s | 8 s | 68 % |
-| 14,85 s | 8 s | 54 % |
-| 15,18 s | 7 s | 46 % |
-| 16,95 s | 10 s | 59 % |
-| **17,58 s** | **5 s** | **28 %** |
+| Audio dictado | Post-proceso | Recargo  |
+| ------------- | ------------ | -------- |
+| 8,19 s        | 8 s          | 100 %    |
+| 9,12 s        | 8 s          | 88 %     |
+| 9,39 s        | 8 s          | 85 %     |
+| 11,82 s       | 8 s          | 68 %     |
+| 14,85 s       | 8 s          | 54 %     |
+| 15,18 s       | 7 s          | 46 %     |
+| 16,95 s       | 10 s         | 59 %     |
+| **17,58 s**   | **5 s**      | **28 %** |
 
 ```
 n = 8    mínimo 5 s    máximo 10 s    mediana 8 s    media 7,8 s
@@ -262,9 +262,9 @@ puente Swift diría si en esos casos se está pagando una segunda inferencia.
 > **Historial de correcciones de esta sección.** Se documenta porque el proceso
 > es más instructivo que el resultado.
 >
-> 1. Primera versión: *"8 s constantes"*. Basada en 4 medidas de audios cortos.
-> 2. Apareció un dato de 98 s → se reescribió como *"escala con la longitud, peor
->    que proporcionalmente"*, a partir de **un solo punto**.
+> 1. Primera versión: _"8 s constantes"_. Basada en 4 medidas de audios cortos.
+> 2. Apareció un dato de 98 s → se reescribió como _"escala con la longitud, peor
+>    que proporcionalmente"_, a partir de **un solo punto**.
 > 3. Ocho medidas después: la primera versión era la correcta. El 98 era un
 >    atípico.
 >
@@ -275,11 +275,11 @@ puente Swift diría si en esos casos se está pagando una segunda inferencia.
 
 ### Qué se probó para bajarlo
 
-| Prompt | Tamaño | Latencia |
-|---|---|---|
-| El de fábrica, en inglés | ~200 tokens | 11 s |
-| Español, 3 reglas | ~60 tokens | 8 s |
-| Español, 1 regla | ~30 tokens | 8 s |
+| Prompt                   | Tamaño      | Latencia |
+| ------------------------ | ----------- | -------- |
+| El de fábrica, en inglés | ~200 tokens | 11 s     |
+| Español, 3 reglas        | ~60 tokens  | 8 s      |
+| Español, 1 regla         | ~30 tokens  | 8 s      |
 
 Acortar el prompt de 200 a 60 tokens ganó 3 segundos. Seguir acortándolo no
 ganó nada más. **El suelo son 8 segundos.**
@@ -296,7 +296,7 @@ ofrece `prewarm()`. Encajaba muy bien, y además habría permitido una solución
 elegante: calentar el modelo **mientras el usuario dicta**, aprovechando ese
 tiempo muerto, de modo que el coste desapareciera de la experiencia.
 → **Refutada por medición directa:** dos dictados separados por 7 segundos
-dieron 9 s y 13 s. El segundo, con la sesión recién usada, fue *más lento*. Si
+dieron 9 s y 13 s. El segundo, con la sesión recién usada, fue _más lento_. Si
 el arranque dominara, habría bajado.
 
 **2. Doble inferencia.** El código intenta generación estructurada y, si lanza,
@@ -341,19 +341,19 @@ generación estructurada es específico del español.
 
 ### Lo que sí está medido, y lo que no
 
-| Afirmación | Estado |
-|---|---|
-| Coste fijo de ~8 s por invocación, independiente de la longitud (n=8, mediana 8 s, rango 5-10 s) | medido |
-| **No** escala con la longitud: el dictado más largo (17,58 s) fue el más rápido (5 s) | medido |
-| Dos picos de ~100 s en unas 20 observaciones; uno es la carga inicial del modelo, el otro sin explicar | observado, no reproducido |
-| Bajar el prompt de 200 a 60 tokens quita 3 s; de 60 a 30 no quita nada | medido |
-| Whisper en 0,13-0,29 s (14x-61x tiempo real) | medido |
-| Reutilizar la sesión / `prewarm()` ayudaría | **refutado** — dos llamadas a 7 s de distancia dieron 9 s y 13 s |
-| ~~Escala con la longitud del texto~~ | **refutado** — se dedujo de un único dato de 98 s; ocho medidas posteriores lo desmienten |
-| La causa es la doble inferencia del `catch` | **hipótesis, nunca instrumentada e irrelevante** ante la curva medida |
-| Se compiló el puente real, no los stubs (`build.rs` los sustituye si solo hay Command Line Tools) | verificado en el log de build |
-| Swift compilado con `-O` pese a estar en `tauri dev` | verificado en `build.rs` |
-| Salida inconsistente: `25000` en un dictado y `25,000` en otros dos, con el mismo prompt | observado |
+| Afirmación                                                                                             | Estado                                                                                    |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Coste fijo de ~8 s por invocación, independiente de la longitud (n=8, mediana 8 s, rango 5-10 s)       | medido                                                                                    |
+| **No** escala con la longitud: el dictado más largo (17,58 s) fue el más rápido (5 s)                  | medido                                                                                    |
+| Dos picos de ~100 s en unas 20 observaciones; uno es la carga inicial del modelo, el otro sin explicar | observado, no reproducido                                                                 |
+| Bajar el prompt de 200 a 60 tokens quita 3 s; de 60 a 30 no quita nada                                 | medido                                                                                    |
+| Whisper en 0,13-0,29 s (14x-61x tiempo real)                                                           | medido                                                                                    |
+| Reutilizar la sesión / `prewarm()` ayudaría                                                            | **refutado** — dos llamadas a 7 s de distancia dieron 9 s y 13 s                          |
+| ~~Escala con la longitud del texto~~                                                                   | **refutado** — se dedujo de un único dato de 98 s; ocho medidas posteriores lo desmienten |
+| La causa es la doble inferencia del `catch`                                                            | **hipótesis, nunca instrumentada e irrelevante** ante la curva medida                     |
+| Se compiló el puente real, no los stubs (`build.rs` los sustituye si solo hay Command Line Tools)      | verificado en el log de build                                                             |
+| Swift compilado con `-O` pese a estar en `tauri dev`                                                   | verificado en `build.rs`                                                                  |
+| Salida inconsistente: `25000` en un dictado y `25,000` en otros dos, con el mismo prompt               | observado                                                                                 |
 
 ### Cómo escribir prompts para el modelo local
 
@@ -398,16 +398,16 @@ un coste fijo, se diluye en los textos largos (28 % de recargo en un dictado de
 
 Estado por defecto tras instalar, y lo que hay que cambiar:
 
-| Ajuste | Por defecto | Para la demo |
-|---|---|---|
-| permisos de accesibilidad | no concedidos | **conceder** |
-| `experimental_enabled` | `false` | `true` |
-| `post_process_enabled` | `false` | `true` |
-| `post_process_provider_id` | `"openai"` (nube) | `"apple_intelligence"` (local) |
-| `post_process_selected_prompt_id` | `null` | un prompt cualquiera |
-| `update_checks_enabled` | `true` | `false` |
-| `debug_mode` | `false` | `true` solo para llegar al ajuste anterior |
-| `always_on_microphone` | **`true` en este fork** (upstream: `false`) | dejarlo — evita perder la primera palabra |
+| Ajuste                            | Por defecto                                 | Para la demo                               |
+| --------------------------------- | ------------------------------------------- | ------------------------------------------ |
+| permisos de accesibilidad         | no concedidos                               | **conceder**                               |
+| `experimental_enabled`            | `false`                                     | `true`                                     |
+| `post_process_enabled`            | `false`                                     | `true`                                     |
+| `post_process_provider_id`        | `"openai"` (nube)                           | `"apple_intelligence"` (local)             |
+| `post_process_selected_prompt_id` | `null`                                      | un prompt cualquiera                       |
+| `update_checks_enabled`           | `true`                                      | `false`                                    |
+| `debug_mode`                      | `false`                                     | `true` solo para llegar al ajuste anterior |
+| `always_on_microphone`            | **`true` en este fork** (upstream: `false`) | dejarlo — evita perder la primera palabra  |
 
 Los ajustes se persisten en:
 `~/Library/Application Support/com.pais.handy/settings_store.json` (bajo la

@@ -1,85 +1,141 @@
-/* Diapasón — paleta
+/* ============================================================================
+ * DIAPASÓN — SISTEMA DE DISEÑO
+ * ============================================================================
  *
- * Fuente: el sistema de diseño "Diapasón UI" (Claude Design). Nomenclatura del
- * diseño original y su equivalente aquí:
+ * Tres capas. La regla es simple: cada capa solo mira a la de arriba, y los
+ * componentes solo miran a la capa 3.
  *
- *   paper    fondo de la ventana        -> --color-background
- *   paper-2  superficies elevadas       -> --color-surface
- *   line     bordes de 0,5 px           -> --color-line
- *   ink      texto principal            -> --color-text
- *   ink-2    texto atenuado             -> --color-mid-gray
- *   azul     acento (selección, foco)   -> --color-background-ui
- *   ámbar    acento de marca (diapasón) -> --color-logo-primary
+ *   1. PRIMITIVAS   los colores crudos. Un hex vive aquí y en ningún otro sitio.
+ *   2. SEMÁNTICAS   los roles (fondo, texto, borde, acento). Apuntan a primitivas.
+ *   3. ALIAS        los nombres heredados de Handy. Apuntan a semánticas.
  *
- * Principio del diseño, y es el que más cambia respecto a Handy original:
- * NO hay sombras ni degradados. La jerarquía la dan los bordes de 0,5 px y los
- * cambios de superficie. Si algo necesita destacar, va sobre --color-surface con
- * un borde --color-line, nunca con box-shadow.
+ * PARA CAMBIAR EL DISEÑO:
+ *   · cambiar un color de la marca  -> capa 1, una línea
+ *   · cambiar qué color cumple un rol -> capa 2, una línea
+ *   · NUNCA hay que tocar componentes
  *
- * Los dos acentos (azul y ámbar) son idénticos en claro y oscuro a propósito:
- * la marca no cambia de color con el tema.
- */
+ * POR QUÉ EXISTE LA CAPA 3:
+ *   Handy nombró sus tokens por su apariencia, no por su función, y algunos
+ *   nombres son engañosos:
+ *     --color-logo-primary  suena a marca, pero es EL acento de la UI (~70 usos:
+ *                           botones, focos, seleccionados, progreso, enlaces).
+ *                           Solo HandyTextLogo.tsx lo usa como logo de verdad.
+ *     --color-background-ui suena a superficie, pero también es acento.
+ *     --color-mid-gray      hace de texto atenuado, borde y superficie sutil.
+ *   Renombrarlos exigiría tocar los 101 componentes. En vez de eso, la capa 3
+ *   los declara alias de la semántica correcta: el nombre sigue mintiendo, pero
+ *   el valor ya es el bueno, y el código nuevo puede usar los nombres honestos.
+ *
+ * CÓDIGO NUEVO: usa los semánticos (bg-surface, text-fg-muted, border-border,
+ * bg-accent). No uses los alias ni escribas hex en un componente.
+ * ========================================================================= */
 
 :root {
-  /* --- MODO CLARO -------------------------------------------------------- */
-  --light-color-background: #f7f5f0; /* paper */
-  --light-color-surface: #f0ede6; /* paper-2 */
-  --light-color-surface-alt: #efece4;
-  --light-color-line: #d8d3c8; /* line */
-  --light-color-text: #14181f; /* ink */
-  --light-color-text-2: #2c3440;
-  --light-color-mid-gray: #5a6472; /* ink-2 */
-  --light-color-selected: #e3ebf5; /* fila seleccionada */
+  /* =========================================================================
+   * CAPA 1 — PRIMITIVAS
+   * Paleta del sistema "Diapasón UI". Ningún hex fuera de este bloque.
+   * ====================================================================== */
 
-  /* --- MODO OSCURO ------------------------------------------------------- */
-  --dark-color-background: #14181f; /* paper */
-  --dark-color-surface: #1c222c; /* paper-2 */
-  --dark-color-surface-alt: #1c222c;
-  --dark-color-line: #2c3440; /* line */
-  --dark-color-text: #f0ede6; /* ink */
-  --dark-color-text-2: #d8d3c8;
-  --dark-color-mid-gray: #98a2b3; /* ink-2 */
-  --dark-color-selected: #1b2b3f; /* fila seleccionada */
+  /* Papel y tinta, modo claro */
+  --dp-paper: #f7f5f0;
+  --dp-paper-2: #f0ede6;
+  --dp-paper-3: #efece4;
+  --dp-line-light: #d8d3c8;
+  --dp-ink: #14181f;
+  --dp-ink-2: #2c3440;
+  --dp-ink-muted-light: #5a6472;
+  --dp-selected-light: #e3ebf5;
 
-  /* --- ACENTOS: iguales en ambos modos ----------------------------------- */
-  --color-background-ui: #2364aa; /* azul: selección, foco, interruptores */
-  --color-accent-amber: #c8862a; /* ámbar: marca, caña del diapasón */
-  --color-danger: #b3382c; /* rojo: borrar, errores */
+  /* Papel y tinta, modo oscuro */
+  --dp-paper-dark: #14181f;
+  --dp-paper-2-dark: #1c222c;
+  --dp-line-dark: #2c3440;
+  --dp-ink-dark: #f0ede6;
+  --dp-ink-2-dark: #d8d3c8;
+  --dp-ink-muted-dark: #98a2b3;
+  --dp-selected-dark: #1b2b3f;
 
-  /* El logo es el diapasón: horquilla en tinta, caña en ámbar. */
-  --light-color-logo-primary: #c8862a;
-  --light-color-logo-stroke: #14181f;
-  --dark-color-logo-primary: #c8862a;
-  --dark-color-logo-stroke: #f0ede6;
+  /* Acentos. No cambian entre modos: la identidad es la misma en claro y
+     oscuro. El azul es el acento de la interfaz; el ámbar es SOLO marca. */
+  --dp-blue: #2364aa;
+  --dp-blue-hover: #1b4e85;
+  --dp-amber: #c8862a;
+  --dp-red: #b3382c;
 
-  --color-text-stroke: #f7f5f0;
+  /* =========================================================================
+   * CAPA 2 — SEMÁNTICAS
+   * El rol que cumple cada color. Aquí se decide "qué es el fondo", no
+   * "qué color es". Definidas por pares claro/oscuro más abajo.
+   * ====================================================================== */
 
-  /* --- PALETA ACTIVA -----------------------------------------------------
-     Por defecto claro; sigue al sistema con la media query de abajo, o la
-     fuerza `data-theme` (ver App.css). */
-  --color-background: var(--light-color-background);
-  --color-surface: var(--light-color-surface);
-  --color-surface-alt: var(--light-color-surface-alt);
-  --color-line: var(--light-color-line);
-  --color-text: var(--light-color-text);
-  --color-text-2: var(--light-color-text-2);
-  --color-mid-gray: var(--light-color-mid-gray);
-  --color-selected: var(--light-color-selected);
-  --color-logo-primary: var(--light-color-logo-primary);
-  --color-logo-stroke: var(--light-color-logo-stroke);
+  /* --- claro --- */
+  --light-bg: var(--dp-paper);
+  --light-bg-surface: var(--dp-paper-2);
+  --light-bg-surface-alt: var(--dp-paper-3);
+  --light-bg-selected: var(--dp-selected-light);
+  --light-fg: var(--dp-ink);
+  --light-fg-strong: var(--dp-ink-2);
+  --light-fg-muted: var(--dp-ink-muted-light);
+  --light-border: var(--dp-line-light);
+
+  /* --- oscuro --- */
+  --dark-bg: var(--dp-paper-dark);
+  --dark-bg-surface: var(--dp-paper-2-dark);
+  --dark-bg-surface-alt: var(--dp-paper-2-dark);
+  --dark-bg-selected: var(--dp-selected-dark);
+  --dark-fg: var(--dp-ink-dark);
+  --dark-fg-strong: var(--dp-ink-2-dark);
+  --dark-fg-muted: var(--dp-ink-muted-dark);
+  --dark-border: var(--dp-line-dark);
+
+  /* --- iguales en ambos modos --- */
+  --accent: var(--dp-blue);
+  --accent-hover: var(--dp-blue-hover);
+  --brand: var(--dp-amber); /* solo la marca; nunca un control */
+  --danger: var(--dp-red);
+
+  /* Activos: por defecto claro. La media query y `data-theme` los reasignan. */
+  --bg: var(--light-bg);
+  --bg-surface: var(--light-bg-surface);
+  --bg-surface-alt: var(--light-bg-surface-alt);
+  --bg-selected: var(--light-bg-selected);
+  --fg: var(--light-fg);
+  --fg-strong: var(--light-fg-strong);
+  --fg-muted: var(--light-fg-muted);
+  --border: var(--light-border);
+
+  /* =========================================================================
+   * CAPA 3 — ALIAS DE COMPATIBILIDAD
+   * Nombres heredados de Handy. No añadir ninguno nuevo aquí: el código nuevo
+   * usa los semánticos de la capa 2.
+   * ====================================================================== */
+  --color-background: var(--bg);
+  --color-surface: var(--bg-surface);
+  --color-surface-alt: var(--bg-surface-alt);
+  --color-selected: var(--bg-selected);
+  --color-text: var(--fg);
+  --color-text-2: var(--fg-strong);
+  --color-line: var(--border);
+  --color-mid-gray: var(--fg-muted);
+  --color-background-ui: var(--accent);
+  --color-logo-primary: var(--accent); /* pese al nombre, es el acento */
+  --color-logo-stroke: var(--fg);
+  --color-accent-amber: var(--brand);
+  --color-danger: var(--danger);
+  --color-text-stroke: var(--dp-paper);
 }
 
+/* El sistema operativo manda cuando `theme` = system.
+   Solo se reasigna la capa 2; la 3 sigue apuntando sola. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: var(--dark-color-background);
-    --color-surface: var(--dark-color-surface);
-    --color-surface-alt: var(--dark-color-surface-alt);
-    --color-line: var(--dark-color-line);
-    --color-text: var(--dark-color-text);
-    --color-text-2: var(--dark-color-text-2);
-    --color-mid-gray: var(--dark-color-mid-gray);
-    --color-selected: var(--dark-color-selected);
-    --color-logo-primary: var(--dark-color-logo-primary);
-    --color-logo-stroke: var(--dark-color-logo-stroke);
+    --bg: var(--dark-bg);
+    --bg-surface: var(--dark-bg-surface);
+    --bg-surface-alt: var(--dark-bg-surface-alt);
+    --bg-selected: var(--dark-bg-selected);
+    --fg: var(--dark-fg);
+    --fg-strong: var(--dark-fg-strong);
+    --fg-muted: var(--dark-fg-muted);
+    --border: var(--dark-border);
   }
 }

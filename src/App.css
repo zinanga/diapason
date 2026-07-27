@@ -3,7 +3,26 @@
 
 /* Register the shared color tokens (src/styles/theme.css) as Tailwind
    utilities */
+/* Registro de tokens como utilidades de Tailwind.
+   ARRIBA: los semánticos — es lo que debe usar el código nuevo.
+   ABAJO: los alias heredados de Handy, para que los 101 componentes existentes
+   sigan funcionando sin reescribirlos. Ver src/styles/theme.css. */
 @theme inline {
+  /* semánticos — usar estos */
+  --color-bg: var(--bg);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-alt: var(--bg-surface-alt);
+  --color-bg-selected: var(--bg-selected);
+  --color-fg: var(--fg);
+  --color-fg-strong: var(--fg-strong);
+  --color-fg-muted: var(--fg-muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-brand: var(--brand);
+  --color-danger: var(--danger);
+
+  /* alias heredados — no usar en código nuevo */
   --color-text: var(--color-text);
   --color-text-2: var(--color-text-2);
   --color-background: var(--color-background);
@@ -13,7 +32,6 @@
   --color-line: var(--color-line);
   --color-selected: var(--color-selected);
   --color-accent-amber: var(--color-accent-amber);
-  --color-danger: var(--color-danger);
   --color-logo-primary: var(--color-logo-primary);
   --color-logo-stroke: var(--color-logo-stroke);
   --color-text-stroke: var(--color-text-stroke);
@@ -73,30 +91,29 @@
  * so a user can keep Handy light or dark regardless of the OS setting.
  * `system` (or no attribute) leaves the OS in charge.
  */
+/* Solo se reasigna la capa 2 (semántica). La capa 3 (alias) apunta a estas, y
+   los componentes a la 3 — así que basta con estas ocho líneas por tema.
+   Ver src/styles/theme.css para la arquitectura completa. */
 :root[data-theme="light"] {
-  --color-text: var(--light-color-text);
-  --color-text-2: var(--light-color-text-2);
-  --color-background: var(--light-color-background);
-  --color-surface: var(--light-color-surface);
-  --color-surface-alt: var(--light-color-surface-alt);
-  --color-line: var(--light-color-line);
-  --color-mid-gray: var(--light-color-mid-gray);
-  --color-selected: var(--light-color-selected);
-  --color-logo-primary: var(--light-color-logo-primary);
-  --color-logo-stroke: var(--light-color-logo-stroke);
+  --bg: var(--light-bg);
+  --bg-surface: var(--light-bg-surface);
+  --bg-surface-alt: var(--light-bg-surface-alt);
+  --bg-selected: var(--light-bg-selected);
+  --fg: var(--light-fg);
+  --fg-strong: var(--light-fg-strong);
+  --fg-muted: var(--light-fg-muted);
+  --border: var(--light-border);
 }
 
 :root[data-theme="dark"] {
-  --color-text: var(--dark-color-text);
-  --color-text-2: var(--dark-color-text-2);
-  --color-background: var(--dark-color-background);
-  --color-surface: var(--dark-color-surface);
-  --color-surface-alt: var(--dark-color-surface-alt);
-  --color-line: var(--dark-color-line);
-  --color-mid-gray: var(--dark-color-mid-gray);
-  --color-selected: var(--dark-color-selected);
-  --color-logo-primary: var(--dark-color-logo-primary);
-  --color-logo-stroke: var(--dark-color-logo-stroke);
+  --bg: var(--dark-bg);
+  --bg-surface: var(--dark-bg-surface);
+  --bg-surface-alt: var(--dark-bg-surface-alt);
+  --bg-selected: var(--dark-bg-selected);
+  --fg: var(--dark-fg);
+  --fg-strong: var(--dark-fg-strong);
+  --fg-muted: var(--dark-fg-muted);
+  --border: var(--dark-border);
 }
 
 /* macOS - tint native overlay scrollbar thumb */
