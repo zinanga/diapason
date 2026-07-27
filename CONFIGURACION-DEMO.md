@@ -206,39 +206,72 @@ realidad** — y conviene tener la respuesta preparada antes de que la pregunten
 
 ---
 
-## Limitación conocida: el post-proceso con Apple Intelligence es lento
+## El post-proceso con Apple Intelligence: un coste fijo de ~8 segundos
 
-Medido el 2026-07-27 en un MacBook con M1 Max, dictando en español.
+Medido el 2026-07-27 en un MacBook con M1 Max, dictando en español, sobre la
+app empaquetada (build de release).
 
 ### Los números
 
-| Etapa | Tiempo |
-|---|---|
-| Transcripción (Whisper + Metal) | **0,13 – 0,29 s** — entre 14x y 61x tiempo real |
-| Post-proceso (Apple Intelligence) | **9 s** para un dictado de 3 s · **98 s** para uno de 11 s |
+Tanda de ocho dictados seguidos, sin reiniciar la app:
 
-**El coste escala con la longitud del texto, y peor que proporcionalmente:**
+| Audio dictado | Post-proceso | Recargo |
+|---|---|---|
+| 8,19 s | 8 s | 100 % |
+| 9,12 s | 8 s | 88 % |
+| 9,39 s | 8 s | 85 % |
+| 11,82 s | 8 s | 68 % |
+| 14,85 s | 8 s | 54 % |
+| 15,18 s | 7 s | 46 % |
+| 16,95 s | 10 s | 59 % |
+| **17,58 s** | **5 s** | **28 %** |
 
-| Audio dictado | Post-proceso |
-|---|---|
-| 2,76 s | 9 s |
-| 2,25 s | 13 s |
-| **10,92 s** | **98 s** |
+```
+n = 8    mínimo 5 s    máximo 10 s    mediana 8 s    media 7,8 s
+```
 
-Cuatro veces más audio, once veces más tiempo.
+**No escala con la longitud.** El dictado más largo fue el más rápido. Es un
+**coste fijo de unos 8 segundos** por invocación, independiente del texto.
 
-> **Corrección.** Una versión anterior de este documento afirmaba, en la columna
-> de "medido", que la latencia **no** dependía de la longitud del audio: 3,45 s
-> y 6,75 s daban ambos 11 s. Era cierto en ese rango y **falso fuera de él**.
-> Dos puntos próximos en una curva creciente parecen una recta plana. Bastó
-> probar un dictado de 11 segundos para verlo.
+Comparado con la transcripción: **0,13 – 0,29 s** (entre 14x y 61x tiempo real).
+
+### Cuándo tiene sentido usarlo, entonces
+
+Como el coste es fijo y no proporcional, el recargo depende de lo que dictes:
+
+- **Frase corta** → 0,2 s se convierten en 8. Insufrible.
+- **Párrafo largo** → 17 s hablando y 5 esperando. **Perfectamente usable.**
+
+No es una función rota: es una función **para textos largos**, no para frases
+sueltas. En el vídeo no aparece porque ocho segundos de pantalla quieta no caben
+en una pieza de dos minutos, pero para redactar de verdad se sostiene.
+
+### Dos casos atípicos, sin explicación
+
+En unas veinte observaciones aparecieron dos picos cercanos a los 100 segundos:
+
+- **110 s** — la primerísima llamada de la sesión. Carga del modelo por parte del
+  sistema. Se paga una vez.
+- **98 s** — sin explicar. Llegó 18 segundos después de una llamada normal de
+  13 s, lo que hace poco probable que sea otra recarga. **No se ha vuelto a
+  reproducir** en las ocho tomas posteriores.
+
+Si alguien retoma esto, ese pico es la pista: instrumentar la rama `catch` del
+puente Swift diría si en esos casos se está pagando una segunda inferencia.
+
+> **Historial de correcciones de esta sección.** Se documenta porque el proceso
+> es más instructivo que el resultado.
 >
-> Lección: al medir una curva, **abrir el rango antes de declarar que es plana**.
-> Un factor 4 en la entrada revela lo que un factor 2 esconde.
-
-Consecuencia práctica: un dictado de once segundos —que no es largo— cuesta
-minuto y medio de post-proceso. No es una función lenta, es una función
-inservible para dictado real.
+> 1. Primera versión: *"8 s constantes"*. Basada en 4 medidas de audios cortos.
+> 2. Apareció un dato de 98 s → se reescribió como *"escala con la longitud, peor
+>    que proporcionalmente"*, a partir de **un solo punto**.
+> 3. Ocho medidas después: la primera versión era la correcta. El 98 era un
+>    atípico.
+>
+> Dos errores del mismo signo: **sacar la forma de una curva de una muestra que
+> no da para forma.** Primero por corta, después por sobrecorregir con un
+> outlier. La regla que faltaba: antes de describir una tendencia, tener
+> suficientes puntos como para que un solo dato raro no la voltee.
 
 ### Qué se probó para bajarlo
 
@@ -253,26 +286,30 @@ ganó nada más. **El suelo son 8 segundos.**
 
 ### Hipótesis descartadas
 
-Se barajaron dos explicaciones para lo que en su momento parecía un coste fijo.
-**Las dos quedaron descartadas** al medir con un rango de entrada más amplio, y
-se dejan escritas para que nadie las vuelva a recorrer.
+Hay un coste fijo de ~8 segundos por invocación. Se barajaron dos explicaciones
+y **ninguna sobrevivió a la medición**. Se dejan escritas para que nadie las
+vuelva a recorrer.
 
 **1. Arranque de sesión en frío.** `LanguageModelSession` se construye nueva en
 cada llamada, y la documentación de FoundationModels recomienda reutilizarla y
-ofrece `prewarm()`. Encajaba bien: habría permitido calentar el modelo mientras
-el usuario dicta, sin coste percibido.
+ofrece `prewarm()`. Encajaba muy bien, y además habría permitido una solución
+elegante: calentar el modelo **mientras el usuario dicta**, aprovechando ese
+tiempo muerto, de modo que el coste desapareciera de la experiencia.
 → **Refutada por medición directa:** dos dictados separados por 7 segundos
 dieron 9 s y 13 s. El segundo, con la sesión recién usada, fue *más lento*. Si
 el arranque dominara, habría bajado.
 
 **2. Doble inferencia.** El código intenta generación estructurada y, si lanza,
-el `catch` hace una segunda llamada completa (ver abajo).
-→ **Irrelevante:** aunque ocurriera, no explica una curva que crece con la
-longitud del texto. Nunca se instrumentó.
+el `catch` hace una segunda llamada completa (ver abajo). Explicaría un coste
+duplicado.
+→ **Nunca instrumentada.** No hay ninguna traza que distinga si la primera
+llamada tuvo éxito. Sigue siendo la única pista razonable para **los dos picos
+de ~100 s**, pero no explica el comportamiento normal: si cada llamada pagara
+dos inferencias, el coste seguiría siendo fijo y de ~8 s, que es lo que se mide.
 
-Lo que queda en pie es lo simple: **el modelo genera despacio y el tiempo lo
-manda la longitud de la salida.** No hay coste fijo que quitar; hay throughput
-que no da. Ninguna optimización de arranque salva esto.
+Lo que queda en pie es lo simple y lo aburrido: **el modelo local tarda unos 8
+segundos en arrancar y responder, y ese coste no se puede diluir ni predecir
+mejor.** Ninguna optimización de sesión lo toca.
 
 ### El código, para quien quiera seguir mirando
 
@@ -306,12 +343,13 @@ generación estructurada es específico del español.
 
 | Afirmación | Estado |
 |---|---|
-| El tiempo escala con la longitud del texto, peor que proporcionalmente (2,76 s → 9 s; 10,92 s → 98 s) | medido |
-| Dictados de ~3 s cuestan entre 9 y 13 s de post-proceso | medido, repetido |
+| Coste fijo de ~8 s por invocación, independiente de la longitud (n=8, mediana 8 s, rango 5-10 s) | medido |
+| **No** escala con la longitud: el dictado más largo (17,58 s) fue el más rápido (5 s) | medido |
+| Dos picos de ~100 s en unas 20 observaciones; uno es la carga inicial del modelo, el otro sin explicar | observado, no reproducido |
 | Bajar el prompt de 200 a 60 tokens quita 3 s; de 60 a 30 no quita nada | medido |
 | Whisper en 0,13-0,29 s (14x-61x tiempo real) | medido |
 | Reutilizar la sesión / `prewarm()` ayudaría | **refutado** — dos llamadas a 7 s de distancia dieron 9 s y 13 s |
-| ~~No escala con la duración del audio~~ | **refutado** — era un artefacto de medir solo entre 3,45 s y 6,75 s |
+| ~~Escala con la longitud del texto~~ | **refutado** — se dedujo de un único dato de 98 s; ocho medidas posteriores lo desmienten |
 | La causa es la doble inferencia del `catch` | **hipótesis, nunca instrumentada e irrelevante** ante la curva medida |
 | Se compiló el puente real, no los stubs (`build.rs` los sustituye si solo hay Command Line Tools) | verificado en el log de build |
 | Swift compilado con `-O` pese a estar en `tauri dev` | verificado en `build.rs` |
@@ -345,9 +383,14 @@ quitó la muletilla sin que se le pidiera.
 
 ### Decisión
 
-El post-proceso **no se enseña en el video**. Es código de Handy, no del
-proyecto, tarda 8 segundos en pantalla y su fiabilidad en español es irregular.
-El contraste que sí se enseña es el motor propio: 0,13 s, 44x tiempo real.
+El post-proceso **no se enseña en el video**: ocho segundos de pantalla quieta
+no caben en una pieza de dos minutos, es código de Handy y no del proyecto, y su
+fiabilidad en español es irregular. El contraste que sí se enseña es el motor
+propio: 0,13 s, hasta 61x tiempo real.
+
+Pero **la función se queda en el producto**, y con un caso de uso claro: al ser
+un coste fijo, se diluye en los textos largos (28 % de recargo en un dictado de
+17 s) y resulta insufrible en los cortos. Dictar párrafos, no frases.
 
 ---
 
