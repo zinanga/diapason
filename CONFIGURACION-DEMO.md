@@ -158,11 +158,31 @@ Medido el 2026-07-27 en un MacBook con M1 Max, dictando en español.
 
 | Etapa | Tiempo |
 |---|---|
-| Transcripción (Whisper + Metal) | **0,13 – 0,29 s** — entre 14x y 44x tiempo real |
-| Post-proceso (Apple Intelligence) | **8 s**, constante |
+| Transcripción (Whisper + Metal) | **0,13 – 0,29 s** — entre 14x y 61x tiempo real |
+| Post-proceso (Apple Intelligence) | **9 s** para un dictado de 3 s · **98 s** para uno de 11 s |
 
-Los 8 segundos **no dependen de la longitud del audio**: 3,45 s y 6,75 s de
-audio dieron exactamente el mismo tiempo de post-proceso. Es coste fijo.
+**El coste escala con la longitud del texto, y peor que proporcionalmente:**
+
+| Audio dictado | Post-proceso |
+|---|---|
+| 2,76 s | 9 s |
+| 2,25 s | 13 s |
+| **10,92 s** | **98 s** |
+
+Cuatro veces más audio, once veces más tiempo.
+
+> **Corrección.** Una versión anterior de este documento afirmaba, en la columna
+> de "medido", que la latencia **no** dependía de la longitud del audio: 3,45 s
+> y 6,75 s daban ambos 11 s. Era cierto en ese rango y **falso fuera de él**.
+> Dos puntos próximos en una curva creciente parecen una recta plana. Bastó
+> probar un dictado de 11 segundos para verlo.
+>
+> Lección: al medir una curva, **abrir el rango antes de declarar que es plana**.
+> Un factor 4 en la entrada revela lo que un factor 2 esconde.
+
+Consecuencia práctica: un dictado de once segundos —que no es largo— cuesta
+minuto y medio de post-proceso. No es una función lenta, es una función
+inservible para dictado real.
 
 ### Qué se probó para bajarlo
 
@@ -175,11 +195,33 @@ audio dieron exactamente el mismo tiempo de post-proceso. Es coste fijo.
 Acortar el prompt de 200 a 60 tokens ganó 3 segundos. Seguir acortándolo no
 ganó nada más. **El suelo son 8 segundos.**
 
-### Hipótesis sobre el coste fijo — NO verificada
+### Hipótesis descartadas
+
+Se barajaron dos explicaciones para lo que en su momento parecía un coste fijo.
+**Las dos quedaron descartadas** al medir con un rango de entrada más amplio, y
+se dejan escritas para que nadie las vuelva a recorrer.
+
+**1. Arranque de sesión en frío.** `LanguageModelSession` se construye nueva en
+cada llamada, y la documentación de FoundationModels recomienda reutilizarla y
+ofrece `prewarm()`. Encajaba bien: habría permitido calentar el modelo mientras
+el usuario dicta, sin coste percibido.
+→ **Refutada por medición directa:** dos dictados separados por 7 segundos
+dieron 9 s y 13 s. El segundo, con la sesión recién usada, fue *más lento*. Si
+el arranque dominara, habría bajado.
+
+**2. Doble inferencia.** El código intenta generación estructurada y, si lanza,
+el `catch` hace una segunda llamada completa (ver abajo).
+→ **Irrelevante:** aunque ocurriera, no explica una curva que crece con la
+longitud del texto. Nunca se instrumentó.
+
+Lo que queda en pie es lo simple: **el modelo genera despacio y el tiempo lo
+manda la longitud de la salida.** No hay coste fijo que quitar; hay throughput
+que no da. Ninguna optimización de arranque salva esto.
+
+### El código, para quien quiera seguir mirando
 
 Lo que sigue **no está instrumentado**: sale de leer
-`src-tauri/swift/apple_intelligence.swift`, no de medir. Se documenta como
-punto de partida para quien quiera investigarlo, no como causa demostrada.
+`src-tauri/swift/apple_intelligence.swift`, no de medir.
 
 1. Se crea un `LanguageModelSession` **nuevo en cada llamada**, con las
    instrucciones dentro. No hay sesión reutilizada, así que el prompt se
@@ -208,14 +250,16 @@ generación estructurada es específico del español.
 
 | Afirmación | Estado |
 |---|---|
-| 8 s constantes en este equipo | medido, repetido |
-| No escala con la duración del audio (3,45 s vs 6,75 s) | medido |
+| El tiempo escala con la longitud del texto, peor que proporcionalmente (2,76 s → 9 s; 10,92 s → 98 s) | medido |
+| Dictados de ~3 s cuestan entre 9 y 13 s de post-proceso | medido, repetido |
 | Bajar el prompt de 200 a 60 tokens quita 3 s; de 60 a 30 no quita nada | medido |
-| Whisper en 0,13-0,29 s | medido |
+| Whisper en 0,13-0,29 s (14x-61x tiempo real) | medido |
+| Reutilizar la sesión / `prewarm()` ayudaría | **refutado** — dos llamadas a 7 s de distancia dieron 9 s y 13 s |
+| ~~No escala con la duración del audio~~ | **refutado** — era un artefacto de medir solo entre 3,45 s y 6,75 s |
+| La causa es la doble inferencia del `catch` | **hipótesis, nunca instrumentada e irrelevante** ante la curva medida |
 | Se compiló el puente real, no los stubs (`build.rs` los sustituye si solo hay Command Line Tools) | verificado en el log de build |
 | Swift compilado con `-O` pese a estar en `tauri dev` | verificado en `build.rs` |
-| La causa es la doble inferencia | **hipótesis** |
-| Reutilizar la sesión ayudaría | **sin probar** |
+| Salida inconsistente: `25000` en un dictado y `25,000` en otros dos, con el mismo prompt | observado |
 
 ### Cómo escribir prompts para el modelo local
 
