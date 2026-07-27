@@ -1,4 +1,8 @@
 {
+  "brand": {
+    "name": "Diapasón",
+    "tagline": "TU VOZ, AFINADA"
+  },
   "tray": {
     "settings": "Configuración...",
     "checkUpdates": "Buscar actualizaciones...",

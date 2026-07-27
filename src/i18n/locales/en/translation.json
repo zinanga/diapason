@@ -1,4 +1,8 @@
 {
+  "brand": {
+    "name": "Diapasón",
+    "tagline": "YOUR VOICE, IN TUNE"
+  },
   "tray": {
     "settings": "Settings...",
     "checkUpdates": "Check for Updates...",
