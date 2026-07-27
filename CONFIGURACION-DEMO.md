@@ -150,6 +150,62 @@ rehacer el interruptor de la interfaz como tri-estado.
 
 ---
 
+## Cambio de comportamiento: el micrófono siempre activo viene encendido
+
+**Esto se aparta de Handy original y es deliberado.** Si alguien quiere volver
+al comportamiento de upstream, el interruptor está en
+*Debug → "Micrófono siempre activo"*, y el valor por defecto en
+`src-tauri/src/settings.rs`, función `default_always_on_microphone()`.
+
+### El problema que resuelve
+
+En el modo por defecto de upstream (bajo demanda), el stream de audio **se abre
+al pulsar el atajo**. Los micrófonos inalámbricos tardan **cientos de
+milisegundos** en entregar las primeras muestras después de esa apertura. Ese
+audio no llega tarde: **no existe**, así que el pre-roll del VAD (que guarda
+~512 ms) no puede rescatarlo.
+
+Resultado práctico: **se pierde la primera palabra** de cada dictado, de forma
+aparentemente aleatoria. Y cuando la palabra perdida es un «No», la frase
+cambia de sentido.
+
+### Cómo se midió
+
+Con un DJI Mic Mini (inalámbrico) y el modelo Canary-180m, dictando frases que
+empiezan por «No»:
+
+| Condición | Aciertos |
+|---|---|
+| Bajo demanda, hablando encima de la pulsación | **2 de 7** |
+| Bajo demanda, con media pausa antes de hablar | 4 de 4 |
+| **Micrófono siempre activo, hablando encima** | **prácticamente todos** |
+
+La pausa también funcionaba, pero tenía su propio precio: el modelo interpreta
+el silencio como puntuación e **inserta una coma** tras la primera palabra.
+Con el micro abierto no hace falta pausa, y desaparecen los dos problemas.
+
+### Hipótesis descartadas por el camino
+
+- **El modelo se come palabras que no entiende.** Refutada: si fuera el modelo,
+  la pausa no cambiaría nada — la palabra seguiría siendo igual de floja.
+- **La cancelación de ruido por IA del DJI recorta el ataque.** Refutada por lo
+  mismo. El DJI sí influye, pero **por ser inalámbrico**, no por su procesado.
+- **M1 (antialucinación) suprime habla dudosa.** Descartada al comprobar que M1
+  ni siquiera se ejecuta con un modelo no-whisper (ver la sección sobre el
+  modelo activo).
+
+### La contrapartida, que hay que saber explicar
+
+macOS deja el **indicador naranja de micrófono encendido de forma permanente**
+mientras la app corre.
+
+Técnicamente no cambia nada: la app solo captura audio mientras el atajo está
+pulsado, y el resto se descarta sin salir del equipo. Pero en una aplicación
+que vende privacidad, un indicador siempre iluminado es **peor óptica que
+realidad** — y conviene tener la respuesta preparada antes de que la pregunten.
+
+---
+
 ## Limitación conocida: el post-proceso con Apple Intelligence es lento
 
 Medido el 2026-07-27 en un MacBook con M1 Max, dictando en español.
@@ -308,6 +364,7 @@ Estado por defecto tras instalar, y lo que hay que cambiar:
 | `post_process_selected_prompt_id` | `null` | un prompt cualquiera |
 | `update_checks_enabled` | `true` | `false` |
 | `debug_mode` | `false` | `true` solo para llegar al ajuste anterior |
+| `always_on_microphone` | **`true` en este fork** (upstream: `false`) | dejarlo — evita perder la primera palabra |
 
 Los ajustes se persisten en:
 `~/Library/Application Support/com.pais.handy/settings_store.json` (bajo la

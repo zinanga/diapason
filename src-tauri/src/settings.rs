@@ -513,8 +513,21 @@ fn default_push_to_talk() -> bool {
     true
 }
 
+/// Activado por defecto (upstream lo trae apagado). Ver CONFIGURACION-DEMO.md,
+/// "El micrófono siempre activo viene encendido".
+///
+/// En modo bajo demanda el stream se abre al pulsar el atajo, y los micros
+/// inalámbricos tardan cientos de milisegundos en entregar las primeras
+/// muestras. Ese audio no llega tarde: no existe, así que el pre-roll del VAD
+/// no lo puede rescatar y la primera palabra se pierde. Medido con un DJI Mic
+/// Mini: hablando encima de la pulsación, 2 aciertos de 7; con el micro
+/// abierto, prácticamente todos.
+///
+/// Contrapartida: macOS deja el indicador naranja de micrófono encendido de
+/// forma permanente. La app sigue capturando solo mientras el atajo está
+/// pulsado — el resto del audio se descarta y nunca sale del equipo.
 fn default_always_on_microphone() -> bool {
-    false
+    true
 }
 
 fn default_translate_to_english() -> bool {
