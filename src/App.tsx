@@ -12,7 +12,12 @@ import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
-import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
+import {
+  Sidebar,
+  SidebarSection,
+  SECTIONS_CONFIG,
+  isFullBleedSection,
+} from "./components/Sidebar";
 import { WhatsNewGate } from "./components/whats-new";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -310,14 +315,23 @@ function App() {
             activeSection={currentSection}
             onSectionChange={setCurrentSection}
           />
-          {/* Scrollable content area */}
+          {/* Scrollable content area.
+              Las secciones marcadas `fullBleed` (ver SECTIONS_CONFIG) se pintan
+              sin relleno ni centrado y a toda altura: llevan sus propias
+              columnas y sus paneles deben tocarse entre sí. */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
-              <div className="flex flex-col items-center p-4 gap-4">
-                <AccessibilityPermissions />
+            {isFullBleedSection(currentSection) ? (
+              <div className="flex-1 overflow-hidden">
                 {renderSettingsContent(currentSection)}
               </div>
-            </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto">
+                <div className="flex flex-col items-center p-4 gap-4">
+                  <AccessibilityPermissions />
+                  {renderSettingsContent(currentSection)}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         {/* Fixed footer at bottom */}

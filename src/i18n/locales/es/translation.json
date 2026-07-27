@@ -403,7 +403,12 @@
       "translateToEnglishDescription": "Traduce el habla de otros idiomas al inglés al usar este perfil.",
       "shortcut": "Atajo",
       "shortcutDescription": "Atajo de teclado que inicia una grabación con este perfil.",
-      "delete": "Eliminar perfil"
+      "delete": "Eliminar perfil",
+      "badgeGlobal": "GLOBAL",
+      "badgeTranslate": "TRADUCE",
+      "badgePostProcess": "POST-PROCESO",
+      "selectPrompt": "Elige un perfil a la izquierda para editarlo.",
+      "savedOnType": "Los cambios se guardan al escribirlos."
     },
     "postProcessing": {
       "hotkey": {

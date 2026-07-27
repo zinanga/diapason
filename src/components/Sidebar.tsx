@@ -38,6 +38,12 @@ interface SectionConfig {
   icon: React.ComponentType<IconProps>;
   component: React.ComponentType;
   enabled: (settings: any) => boolean;
+  /**
+   * La sección se pinta a sangre: sin el relleno ni el centrado que App.tsx
+   * aplica al resto, y ocupando toda la altura. Para pantallas con columnas
+   * propias, como Perfiles, donde los paneles deben tocarse entre sí.
+   */
+  fullBleed?: boolean;
 }
 
 export const SECTIONS_CONFIG = {
@@ -58,6 +64,7 @@ export const SECTIONS_CONFIG = {
     icon: Layers,
     component: ProfilesSettings,
     enabled: () => true,
+    fullBleed: true,
   },
   advanced: {
     labelKey: "sidebar.advanced",
@@ -90,6 +97,16 @@ export const SECTIONS_CONFIG = {
     enabled: () => true,
   },
 } as const satisfies Record<string, SectionConfig>;
+
+/**
+ * ¿La sección se pinta a sangre? `as const` hace que las entradas sin
+ * `fullBleed` no tengan la propiedad en su tipo, así que se comprueba en
+ * tiempo de ejecución en vez de con un cast.
+ */
+export const isFullBleedSection = (section: SidebarSection): boolean => {
+  const config: SectionConfig = SECTIONS_CONFIG[section];
+  return config?.fullBleed === true;
+};
 
 interface SidebarProps {
   activeSection: SidebarSection;

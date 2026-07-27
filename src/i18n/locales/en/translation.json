@@ -403,7 +403,12 @@
       "translateToEnglishDescription": "Translate speech from other languages to English when using this profile.",
       "shortcut": "Shortcut",
       "shortcutDescription": "Keyboard shortcut that starts a recording with this profile.",
-      "delete": "Delete Profile"
+      "delete": "Delete Profile",
+      "badgeGlobal": "GLOBAL",
+      "badgeTranslate": "TRANSLATES",
+      "badgePostProcess": "POST-PROCESS",
+      "selectPrompt": "Pick a profile on the left to edit it.",
+      "savedOnType": "Changes are saved as you type."
     },
     "postProcessing": {
       "hotkey": {
