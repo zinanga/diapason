@@ -40,5 +40,10 @@ blob-report/
 .direnv
 .envrc
 
+# Secretos: nunca subir claves. El .env.example sí, para documentar qué hace falta.
+.env
+.env.*
+!.env.example
+
 # Nix build output
 result
