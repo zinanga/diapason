@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettings } from "../../hooks/useSettings";
+import { useModelIsWhisper } from "../../hooks/useModelIsWhisper";
 import { SettingContainer } from "../ui/SettingContainer";
 import { Textarea } from "../ui/Textarea";
 
@@ -17,6 +18,7 @@ export const WhisperPrompt: React.FC<WhisperPromptProps> = ({
   const { getSetting, updateSetting, isUpdating } = useSettings();
   const storedPrompt = getSetting("whisper_initial_prompt") ?? "";
   const [prompt, setPrompt] = useState(storedPrompt);
+  const isWhisper = useModelIsWhisper();
 
   // Keep local state in sync when the setting changes externally
   // (e.g. backend refresh or reset).
@@ -30,11 +32,19 @@ export const WhisperPrompt: React.FC<WhisperPromptProps> = ({
     }
   };
 
+  // `null` = todavía no se sabe (modelo aún sin cargar). Solo se desactiva ante
+  // un `false` explícito, para no bloquear el campo durante el arranque.
+  const unsupported = isWhisper === false;
+
   return (
     <SettingContainer
       title={t("settings.advanced.whisperPrompt.title")}
-      description={t("settings.advanced.whisperPrompt.description")}
-      descriptionMode={descriptionMode}
+      description={
+        unsupported
+          ? t("settings.advanced.whisperOnly")
+          : t("settings.advanced.whisperPrompt.description")
+      }
+      descriptionMode={unsupported ? "inline" : descriptionMode}
       grouped={grouped}
       layout="stacked"
     >
@@ -45,7 +55,7 @@ export const WhisperPrompt: React.FC<WhisperPromptProps> = ({
         onChange={(e) => setPrompt(e.target.value)}
         onBlur={handleBlur}
         placeholder={t("settings.advanced.whisperPrompt.placeholder")}
-        disabled={isUpdating("whisper_initial_prompt")}
+        disabled={unsupported || isUpdating("whisper_initial_prompt")}
       />
     </SettingContainer>
   );

@@ -381,7 +381,8 @@
         "title": "Whisper Initial Prompt",
         "description": "Optional text passed to Whisper as context before transcription. Use it to bias spelling of names, jargon, and punctuation style. Saved when the field loses focus.",
         "placeholder": "e.g. Glossary: Handy, Tauri, specta. Use full punctuation."
-      }
+      },
+      "whisperOnly": "Only available with Whisper-family models. The active model ignores this setting."
     },
     "profiles": {
       "title": "Transcription Profiles",

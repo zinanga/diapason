@@ -381,7 +381,8 @@
         "title": "Prompt inicial de Whisper",
         "description": "Texto opcional que se pasa a Whisper como contexto antes de transcribir. Úsalo para orientar la ortografía de nombres, jerga y estilo de puntuación. Se guarda al salir del campo.",
         "placeholder": "Ej.: Glosario: Handy, Tauri, specta. Usa puntuación completa."
-      }
+      },
+      "whisperOnly": "Solo disponible con modelos de la familia Whisper. El modelo activo ignora este ajuste."
     },
     "profiles": {
       "title": "Perfiles de transcripción",
