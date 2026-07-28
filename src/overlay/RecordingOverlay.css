@@ -236,27 +236,28 @@
 /* base row — dot (left) | waveform (center) | timer + cancel (right).
    Same structure for pill & panel; the dot stays anchored left in both. */
 .sbase {
+  /* Fila única que fluye a la izquierda, como el diseño (bloque 1a):
+     punto · ESTADO · ondas · tiempo · cancelar.
+     Antes era una rejilla de tres zonas que CENTRABA el elemento del medio, y por
+     eso la onda salía en mitad de la píldora en vez de seguir a la etiqueta. */
   height: var(--ov-base-h);
-  padding: 0 10px;
-  display: grid;
-  /* Equal side columns (min 22px to hold the cancel button) keep the center item
-     — waveform or label — centered whether the pill is at min width or content-
-     sized. */
-  grid-template-columns: minmax(22px, 1fr) auto minmax(22px, 1fr);
+  padding: 0 14px;
+  display: flex;
   align-items: center;
+  gap: 12px;
 }
 .sbase-l {
   display: flex;
-  padding-left: 4px;
   gap: 10px;
   align-items: center;
-  justify-self: start;
+  flex: none;
 }
 .sbase-r {
   display: flex;
   align-items: center;
   gap: 10px;
-  justify-self: end;
+  flex: none;
+  margin-inline-start: auto; /* tiempo y cancelar, anclados al final */
 }
 .sdot {
   /* Ámbar: el diseño reserva este color para SEÑAL VIVA (grabando).
@@ -295,7 +296,6 @@
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  padding-right: 8px;
   height: 18px;
   flex: none;
 }

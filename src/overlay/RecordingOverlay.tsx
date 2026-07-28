@@ -16,7 +16,7 @@ type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
-const WAVE_BARS = 9;
+const WAVE_BARS = 12;
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
