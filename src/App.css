@@ -21,6 +21,7 @@
   --color-accent-hover: var(--accent-hover);
   --color-brand: var(--brand);
   --color-danger: var(--danger);
+  --color-success: var(--success);
 
   /* alias heredados — no usar en código nuevo */
   --color-text: var(--color-text);

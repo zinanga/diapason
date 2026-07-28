@@ -1,7 +1,8 @@
 {
   "brand": {
     "name": "Diapasón",
-    "tagline": "TU VOZ, AFINADA"
+    "tagline": "TU VOZ, AFINADA",
+    "localBadge": "todo local"
   },
   "tray": {
     "settings": "Configuración...",

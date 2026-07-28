@@ -1,7 +1,8 @@
 {
   "brand": {
     "name": "Diapasón",
-    "tagline": "YOUR VOICE, IN TUNE"
+    "tagline": "YOUR VOICE, IN TUNE",
+    "localBadge": "fully local"
   },
   "tray": {
     "settings": "Settings...",

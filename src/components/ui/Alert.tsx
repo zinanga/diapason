@@ -31,9 +31,9 @@ const variantStyles: Record<
     text: "text-background-ui",
   },
   success: {
-    container: "bg-green-500/10",
-    icon: "text-green-500",
-    text: "text-green-400",
+    container: "bg-success/10",
+    icon: "text-success",
+    text: "text-success",
   },
 };
 

@@ -28,7 +28,7 @@ const ModelStatusButton: React.FC<ModelStatusButtonProps> = ({
   const getStatusColor = (status: ModelStatus): string => {
     switch (status) {
       case "ready":
-        return "bg-green-400";
+        return "bg-success";
       case "loading":
         return "bg-accent-amber animate-pulse";
       case "downloading":

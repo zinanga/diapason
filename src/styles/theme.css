@@ -56,11 +56,12 @@
   --dp-selected-dark: #1b2b3f;
 
   /* Acentos. No cambian entre modos: la identidad es la misma en claro y
-     oscuro. El azul es el acento de la interfaz; el ámbar es SOLO marca. */
+     oscuro. Ver la capa 2 para qué papel cumple cada uno. */
   --dp-blue: #2364aa;
   --dp-blue-hover: #1b4e85;
   --dp-amber: #c8862a;
   --dp-red: #b3382c;
+  --dp-green: #2e7d57;
 
   /* =========================================================================
    * CAPA 2 — SEMÁNTICAS
@@ -91,8 +92,12 @@
   /* --- iguales en ambos modos --- */
   --accent: var(--dp-blue);
   --accent-hover: var(--dp-blue-hover);
-  --brand: var(--dp-amber); /* solo la marca; nunca un control */
+  /* Regla del diseño, literal: "el ámbar es solo SEÑAL VIVA; el azul, marca y
+     foco". Por eso el punto de grabación y la onda del overlay van en ámbar, y
+     los controles y focos en azul. */
+  --brand: var(--dp-amber);
   --danger: var(--dp-red);
+  --success: var(--dp-green);
 
   /* Activos: por defecto claro. La media query y `data-theme` los reasignan. */
   --bg: var(--light-bg);
@@ -122,6 +127,7 @@
   --color-logo-stroke: var(--fg);
   --color-accent-amber: var(--brand);
   --color-danger: var(--danger);
+  --color-success: var(--success);
   --color-text-stroke: var(--dp-paper);
 }
 
