@@ -20,6 +20,11 @@ const WAVE_BARS = 12;
 // Suelo del pico: por debajo de esto se considera silencio y no se amplifica, o
 // el ruido de fondo haría bailar las barras con la sala en calma.
 const PEAK_FLOOR = 0.04;
+// Exageración de la animación. La onda es DECORATIVA: los niveles llegan por el
+// evento `mic-level`, que el backend calcula aparte solo para pintar. El audio
+// que va a la transcripción no pasa por aquí, así que amplificar el dibujo no
+// toca la calidad de nada.
+const WAVE_GAIN = 1.45;
 // Cuánto decae el pico por trama (~30 ms): baja a la mitad en unos 2 s, así que
 // tras un grito la escala vuelve sola a un nivel de conversación.
 const PEAK_DECAY = 0.99;
@@ -110,7 +115,21 @@ const RecordingOverlay: React.FC = () => {
           PEAK_FLOOR,
           Math.max(peakRef.current * PEAK_DECAY, frameMax),
         );
-        setLevels(smoothed.slice(0, WAVE_BARS));
+        // Antes se cogían los 12 primeros buckets de 16, que son los graves: ahí
+        // se concentra la voz, así que las barras de la izquierda se movían y las
+        // de la derecha quedaban muertas. Ahora se reparte el espectro entero y
+        // se dibuja en espejo desde el centro, que es como se lee una onda de voz:
+        // el centro late y los extremos acompañan.
+        const half = Math.ceil(WAVE_BARS / 2);
+        const mirrored: number[] = [];
+        for (let i = 0; i < half; i++) {
+          const bucket = Math.floor((i / half) * smoothed.length);
+          mirrored.push(smoothed[bucket] ?? 0);
+        }
+        const full = [...mirrored]
+          .reverse()
+          .concat(mirrored.slice(0, WAVE_BARS - half));
+        setLevels(full);
       });
 
       const unlistenStream = await events.streamTextEvent.listen((event) => {
@@ -185,7 +204,12 @@ const RecordingOverlay: React.FC = () => {
               2,
               Math.min(
                 18,
-                2 + Math.pow(Math.min(1, v / peakRef.current), 0.5) * 16,
+                2 +
+                  Math.pow(
+                    Math.min(1, (v / peakRef.current) * WAVE_GAIN),
+                    0.45,
+                  ) *
+                    16,
               ),
             )}px`,
           }}
