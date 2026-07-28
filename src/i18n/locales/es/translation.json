@@ -128,7 +128,10 @@
     "welcomePitch": "Dictado que ocurre entero en tu Mac. Nada sale de este equipo, no hay cuenta y no hay servidor.",
     "welcomePlatform": "SOLO MACOS · APPLE SILICON",
     "welcomeUnsigned": "SIN FIRMA DE APPLE: CLIC DERECHO → ABRIR",
-    "welcomeStart": "Empezar"
+    "welcomeStart": "Empezar",
+    "readyTitle": "Listo. Mantén pulsado:",
+    "readyBody": "Habla mientras lo mantienes. Al soltar, el texto entra donde esté el cursor. Verás esto abajo de la pantalla:",
+    "readyFinish": "Terminar"
   },
   "modelSelector": {
     "custom": "Personalizado",

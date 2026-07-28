@@ -128,7 +128,10 @@
     "welcomePitch": "Dictation that happens entirely on your Mac. Nothing leaves this machine, no account and no server.",
     "welcomePlatform": "MACOS ONLY · APPLE SILICON",
     "welcomeUnsigned": "UNSIGNED BY APPLE: RIGHT-CLICK → OPEN",
-    "welcomeStart": "Get started"
+    "welcomeStart": "Get started",
+    "readyTitle": "Done. Hold down:",
+    "readyBody": "Speak while you hold it. When you let go, the text lands wherever your cursor is. You'll see this at the bottom of the screen:",
+    "readyFinish": "Finish"
   },
   "modelSelector": {
     "custom": "Custom",

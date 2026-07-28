@@ -12,6 +12,7 @@ import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
+import ReadyStep from "./components/onboarding/ReadyStep";
 import {
   Sidebar,
   SidebarSection,
@@ -24,7 +25,7 @@ import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
-type OnboardingStep = "accessibility" | "model" | "done";
+type OnboardingStep = "accessibility" | "model" | "ready" | "done";
 
 const renderSettingsContent = (section: SidebarSection) => {
   const ActiveComponent =
@@ -263,8 +264,11 @@ function App() {
   };
 
   const handleModelSelected = () => {
-    // Transition to main app - user has started a download
-    setOnboardingStep("done");
+    // Antes saltaba directo a la app. Ahora pasa por el paso 3 del diseño, que
+    // enseña el atajo: sin él, el usuario termina el onboarding sin saber qué
+    // tecla pulsar para dictar. Solo lo ven los usuarios nuevos — quien vuelve
+    // salta a "done" desde el paso de permisos.
+    setOnboardingStep("ready");
   };
 
   // Rendered once around every step below (including onboarding) so
@@ -302,6 +306,9 @@ function App() {
     );
   } else if (onboardingStep === "model") {
     content = <Onboarding onModelSelected={handleModelSelected} />;
+  } else if (onboardingStep === "ready") {
+    // Paso 3 del diseño: enseña el atajo antes de soltar al usuario en la app.
+    content = <ReadyStep onFinish={() => setOnboardingStep("done")} />;
   } else {
     content = (
       <div
