@@ -298,14 +298,85 @@
   gap: 2px;
   height: 18px;
   flex: none;
+  /* Amplitud global: la fija el nivel del micro desde React (0..1). En silencio
+     la onda se encoge casi del todo; hablando ocupa los 18 px. */
+  --wave-amp: 0.12;
+  transform: scaleY(var(--wave-amp));
+  transform-origin: bottom;
+  transition: transform 90ms linear;
 }
 .swave i {
   width: 2px;
-  min-height: 3px;
-  max-height: 18px;
+  height: 18px;
   border-radius: 1px;
   background: var(--brand);
-  transition: height 80ms linear;
+  transform-origin: bottom;
+  /* El meneo lo hace CSS, exactamente como el diseño (bloque 1a): cada barra con
+     su propia duración y retardo, así que la onda se ve repartida y viva sin
+     depender de cómo el FFT reparta la energía.
+     El micro solo controla la AMPLITUD, vía --wave-amp en el contenedor. */
+  animation: lvl 620ms 0s infinite alternate ease-in-out;
+}
+.swave i:nth-child(1) {
+  animation-duration: 620ms;
+  animation-delay: 0s;
+}
+.swave i:nth-child(2) {
+  animation-duration: 540ms;
+  animation-delay: 0.07s;
+}
+.swave i:nth-child(3) {
+  animation-duration: 700ms;
+  animation-delay: 0.13s;
+}
+.swave i:nth-child(4) {
+  animation-duration: 480ms;
+  animation-delay: 0.04s;
+}
+.swave i:nth-child(5) {
+  animation-duration: 660ms;
+  animation-delay: 0.19s;
+}
+.swave i:nth-child(6) {
+  animation-duration: 580ms;
+  animation-delay: 0.02s;
+}
+.swave i:nth-child(7) {
+  animation-duration: 720ms;
+  animation-delay: 0.11s;
+}
+.swave i:nth-child(8) {
+  animation-duration: 500ms;
+  animation-delay: 0.16s;
+}
+.swave i:nth-child(9) {
+  animation-duration: 640ms;
+  animation-delay: 0.05s;
+}
+.swave i:nth-child(10) {
+  animation-duration: 560ms;
+  animation-delay: 0.14s;
+}
+.swave i:nth-child(11) {
+  animation-duration: 690ms;
+  animation-delay: 0.09s;
+}
+.swave i:nth-child(12) {
+  animation-duration: 520ms;
+  animation-delay: 0.17s;
+}
+
+/* Keyframe del diseño, tal cual. */
+@keyframes lvl {
+  0% {
+    transform: scaleY(0.18);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0.3);
+  }
 }
 .sx {
   width: 22px;

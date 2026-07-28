@@ -15,7 +15,7 @@ import { getLanguageDirection } from "@/lib/utils/rtl";
 type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
-// every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
+// every overlay form). El meneo por barra lo hace CSS; el micro solo fija la amplitud.
 const WAVE_BARS = 12;
 // Suelo del pico: por debajo de esto se considera silencio y no se amplifica, o
 // el ruido de fondo haría bailar las barras con la sala en calma.
@@ -33,7 +33,8 @@ const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<OverlayState>("recording");
-  const [levels, setLevels] = useState<number[]>(Array(WAVE_BARS).fill(0));
+  // Amplitud global de la onda (0..1). El meneo por barra lo hace CSS.
+  const [waveAmp, setWaveAmp] = useState(0.12);
   const [streamText, setStreamText] = useState<StreamTextEvent>({
     committed: "",
     tentative: "",
@@ -110,26 +111,23 @@ const RecordingOverlay: React.FC = () => {
           return prev * 0.45 + target * 0.55;
         });
         smoothedLevelsRef.current = smoothed;
+
+        // Se usa el nivel GLOBAL, no el reparto por frecuencias. El backend
+        // reparte 400-4000 Hz en 16 buckets con espaciado cuadrático, así que los
+        // graves caen en buckets tan estrechos que colapsan en el mismo bin del
+        // FFT: la energía se amontona a un lado y ninguna barra de la derecha se
+        // mueve. El diseño tampoco pinta un espectro — anima cada barra por su
+        // cuenta — así que aquí solo hace falta cuánto suena, no en qué banda.
         const frameMax = Math.max(...smoothed);
         peakRef.current = Math.max(
           PEAK_FLOOR,
           Math.max(peakRef.current * PEAK_DECAY, frameMax),
         );
-        // Antes se cogían los 12 primeros buckets de 16, que son los graves: ahí
-        // se concentra la voz, así que las barras de la izquierda se movían y las
-        // de la derecha quedaban muertas. Ahora se reparte el espectro entero y
-        // se dibuja en espejo desde el centro, que es como se lee una onda de voz:
-        // el centro late y los extremos acompañan.
-        const half = Math.ceil(WAVE_BARS / 2);
-        const mirrored: number[] = [];
-        for (let i = 0; i < half; i++) {
-          const bucket = Math.floor((i / half) * smoothed.length);
-          mirrored.push(smoothed[bucket] ?? 0);
-        }
-        const full = [...mirrored]
-          .reverse()
-          .concat(mirrored.slice(0, WAVE_BARS - half));
-        setLevels(full);
+        const amp = Math.pow(
+          Math.min(1, (frameMax / peakRef.current) * WAVE_GAIN),
+          0.45,
+        );
+        setWaveAmp(Math.max(0.12, amp));
       });
 
       const unlistenStream = await events.streamTextEvent.listen((event) => {
@@ -193,27 +191,12 @@ const RecordingOverlay: React.FC = () => {
 
   // ---- Shared building blocks (one visual language for every overlay form) ----
   const waveform = (
-    <div className="swave">
-      {levels.map((v, i) => (
-        <i
-          key={i}
-          style={{
-            // Normalizado contra el pico reciente y con curva suave (^0.5), que
-            // levanta los niveles bajos sin saturar los altos.
-            height: `${Math.max(
-              2,
-              Math.min(
-                18,
-                2 +
-                  Math.pow(
-                    Math.min(1, (v / peakRef.current) * WAVE_GAIN),
-                    0.45,
-                  ) *
-                    16,
-              ),
-            )}px`,
-          }}
-        />
+    <div
+      className="swave"
+      style={{ ["--wave-amp" as string]: waveAmp } as React.CSSProperties}
+    >
+      {Array.from({ length: WAVE_BARS }, (_, i) => (
+        <i key={i} />
       ))}
     </div>
   );
