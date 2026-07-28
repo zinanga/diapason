@@ -123,7 +123,12 @@
         "checkFailed": "Error al verificar permisos. Por favor, inténtalo de nuevo.",
         "requestFailed": "Error al solicitar permiso. Por favor, inténtalo de nuevo."
       }
-    }
+    },
+    "welcomeTitle": "Diapasón",
+    "welcomePitch": "Dictado que ocurre entero en tu Mac. Nada sale de este equipo, no hay cuenta y no hay servidor.",
+    "welcomePlatform": "SOLO MACOS · APPLE SILICON",
+    "welcomeUnsigned": "SIN FIRMA DE APPLE: CLIC DERECHO → ABRIR",
+    "welcomeStart": "Empezar"
   },
   "modelSelector": {
     "custom": "Personalizado",

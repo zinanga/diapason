@@ -6,6 +6,7 @@ import type { ModelInfo } from "@/bindings";
 import type { ModelCardStatus } from "./ModelCard";
 import ModelCard, { isLegacySource } from "./ModelCard";
 import DiapasonLogo from "../icons/DiapasonLogo";
+import WelcomeStep from "./WelcomeStep";
 import { useModelStore } from "../../stores/modelStore";
 
 interface OnboardingProps {
@@ -25,6 +26,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     downloadStats,
     cancelDownload,
   } = useModelStore();
+  const [showWelcome, setShowWelcome] = useState(true);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const hasStartedSelection = useRef(false);
@@ -142,6 +144,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   const getModelDownloadSpeed = (modelId: string): number | undefined => {
     return downloadStats[modelId]?.speed;
   };
+
+  // Paso 1 del diseño: bienvenida antes de elegir modelo. Se muestra una vez
+  // por sesión de onboarding; al pulsar Empezar se pasa a la elección de modelo.
+  if (showWelcome) {
+    return <WelcomeStep onStart={() => setShowWelcome(false)} />;
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col p-6 gap-4 inset-0">
