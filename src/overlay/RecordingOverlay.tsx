@@ -17,6 +17,12 @@ type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
 const WAVE_BARS = 12;
+// Suelo del pico: por debajo de esto se considera silencio y no se amplifica, o
+// el ruido de fondo haría bailar las barras con la sala en calma.
+const PEAK_FLOOR = 0.04;
+// Cuánto decae el pico por trama (~30 ms): baja a la mitad en unos 2 s, así que
+// tras un grito la escala vuelve sola a un nivel de conversación.
+const PEAK_DECAY = 0.99;
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
@@ -41,6 +47,12 @@ const RecordingOverlay: React.FC = () => {
   const [overflowing, setOverflowing] = useState(false);
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
+  // Pico reciente para normalizar la onda. Los micros entregan niveles muy
+  // distintos —un DJI inalámbrico da mucho menos que uno interno— así que una
+  // ganancia fija se queda corta en unos y satura en otros. Se guarda el máximo
+  // visto y se deja decaer, de modo que las barras siempre usan el recorrido
+  // completo sea cual sea el micrófono.
+  const peakRef = useRef(PEAK_FLOOR);
   // Live-text scroll-back: the text region "sticks" to the newest line while the
   // user is at the bottom; if they scroll up to read history, auto-follow pauses
   // until they scroll back down.
@@ -86,11 +98,18 @@ const RecordingOverlay: React.FC = () => {
         const newLevels = event.payload as number[];
         // Exponential smoothing across the 16 buckets, then take the first N
         // bars for the shared waveform.
+        // Menos suavizado que antes (era 0.7/0.3): aquel promedio aplastaba los
+        // picos y la onda parecía quieta incluso hablando alto.
         const smoothed = smoothedLevelsRef.current.map((prev, i) => {
           const target = newLevels[i] || 0;
-          return prev * 0.7 + target * 0.3;
+          return prev * 0.45 + target * 0.55;
         });
         smoothedLevelsRef.current = smoothed;
+        const frameMax = Math.max(...smoothed);
+        peakRef.current = Math.max(
+          PEAK_FLOOR,
+          Math.max(peakRef.current * PEAK_DECAY, frameMax),
+        );
         setLevels(smoothed.slice(0, WAVE_BARS));
       });
 
@@ -160,7 +179,15 @@ const RecordingOverlay: React.FC = () => {
         <i
           key={i}
           style={{
-            height: `${Math.max(3, Math.min(18, 3 + Math.pow(v, 0.7) * 15))}px`,
+            // Normalizado contra el pico reciente y con curva suave (^0.5), que
+            // levanta los niveles bajos sin saturar los altos.
+            height: `${Math.max(
+              2,
+              Math.min(
+                18,
+                2 + Math.pow(Math.min(1, v / peakRef.current), 0.5) * 16,
+              ),
+            )}px`,
           }}
         />
       ))}
