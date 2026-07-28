@@ -5,8 +5,9 @@
   /* Near-opaque app surface (theme.css --color-background at 98%). Auto-flips
      light/dark with --color-background, so no dark-mode override is needed. */
   --s-surface: color-mix(in srgb, var(--color-background) 98%, transparent);
-  /* Accent = logo pink; flips automatically via --color-logo-primary. */
-  --s-accent: var(--color-logo-primary);
+  /* Acento de la interfaz (azul del sistema de diseño). El nombre del token
+     heredado dice "logo" pero es el acento — ver src/styles/theme.css. */
+  --s-accent: var(--accent);
   --s-accent-soft: color-mix(
     in srgb,
     var(--color-background-ui) 16%,
@@ -15,8 +16,10 @@
   /* Neutrals. Hairlines reuse the app's mid-gray at low opacity — same vocabulary
      as the app's border-mid-gray/* utilities. muted/faint are overlay-specific
      secondary/tertiary text grays (no theme equivalent). */
-  --s-muted: #6e6e6e;
-  --s-faint: #9a9a9a;
+  /* Antes eran grises fijos con override manual en oscuro. Ahora salen del
+     sistema y se adaptan solos, así que el bloque de dark-mode se reduce. */
+  --s-muted: var(--fg-muted);
+  --s-faint: color-mix(in srgb, var(--fg-muted) 70%, transparent);
   --s-border: color-mix(in srgb, var(--color-mid-gray) 22%, transparent);
   --s-hair: color-mix(in srgb, var(--color-mid-gray) 12%, transparent);
 
@@ -36,16 +39,8 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Accent uses the lighter logo pink in dark — reads better on the dark
-       surface than the deeper UI pink. */
-    --s-accent-soft: color-mix(
-      in srgb,
-      var(--color-logo-primary) 20%,
-      transparent
-    );
-    --s-muted: #a3a09a;
-    --s-faint: #6f6c66;
-    /* Hairlines flip to the near-white text token for contrast on dark. */
+    --s-accent-soft: color-mix(in srgb, var(--accent) 22%, transparent);
+    /* Las hairlines pasan al token de texto para contrastar sobre oscuro. */
     --s-border: color-mix(in srgb, var(--color-text) 12%, transparent);
     --s-hair: color-mix(in srgb, var(--color-text) 8%, transparent);
   }
@@ -118,7 +113,7 @@
 /* Shared base card. Flat: theme surface + hairline border, no shadow or blur. */
 .scard {
   width: var(--ov-pill-w);
-  border-radius: 24px;
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -154,11 +149,11 @@
 }
 .scard.open {
   width: var(--ov-open-w);
-  border-radius: 16px;
+  border-radius: 10px;
 }
 .scard.working {
   width: var(--ov-work-w);
-  border-radius: 18px;
+  border-radius: 12px;
 }
 
 /* Compact form: two fixed widths so the recording→working change is an animatable
@@ -201,9 +196,8 @@
   padding-bottom: 0px;
   padding-left: 14px;
   padding-right: 14px;
-  font-size: 15px;
-  font-style: italic;
-  line-height: 1.35;
+  font-size: 13px;
+  line-height: 1.45;
   letter-spacing: -0.003em;
   color: color-mix(in srgb, var(--color-text) 90%, transparent);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
@@ -280,7 +274,9 @@
   }
 }
 .stimer {
-  font-size: 12px;
+  font-family: ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.06em;
+  font-size: 10.5px;
   color: var(--s-faint);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -358,7 +354,7 @@
   }
 }
 .swork-label {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--s-muted);
   white-space: nowrap;
   padding: 0 8px; /* breathing room from the spinner / cancel when content-sized */

@@ -39,9 +39,16 @@
 }
 
 :root {
-  /* Typography */
-  font-size: 15px;
-  line-height: 24px;
+  /* Tipografía.
+     El sistema de diseño usa 12,5 px de cuerpo; Handy venía con 15 px, y por eso
+     la app se veía más grande y blanda que los mockups.
+
+     OJO: este valor es EL mando de densidad de toda la app. Tailwind dimensiona
+     en rem, así que bajar la base encoge también espaciados, rellenos y alturas
+     de forma proporcional — que es justo lo que acerca la app al diseño. Subirlo
+     o bajarlo aquí es la única palanca; no hace falta tocar componentes. */
+  font-size: 13px;
+  line-height: 1.55;
   font-weight: 400;
 
   /* Typography settings */
