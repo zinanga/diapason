@@ -4,7 +4,7 @@
   --s-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   /* Near-opaque app surface (theme.css --color-background at 98%). Auto-flips
      light/dark with --color-background, so no dark-mode override is needed. */
-  --s-surface: color-mix(in srgb, var(--color-background) 98%, transparent);
+  --s-surface: var(--bg-surface-alt);
   /* Acento de la interfaz (azul del sistema de diseño). El nombre del token
      heredado dice "logo" pero es el acento — ver src/styles/theme.css. */
   --s-accent: var(--accent);
@@ -20,7 +20,7 @@
      sistema y se adaptan solos, así que el bloque de dark-mode se reduce. */
   --s-muted: var(--fg-muted);
   --s-faint: color-mix(in srgb, var(--fg-muted) 70%, transparent);
-  --s-border: color-mix(in srgb, var(--color-mid-gray) 22%, transparent);
+  --s-border: var(--border);
   --s-hair: color-mix(in srgb, var(--color-mid-gray) 12%, transparent);
 
   /* Card geometry — single source of truth for the visible overlay sizes. The
@@ -28,7 +28,7 @@
      the card's max footprint (--ov-work-w for compact, --ov-open-w for Live),
      since the card is anchored flush to the screen edge in CSS. Keep overlay.rs
      in sync when these change. */
-  --ov-rest-w: 172px; /* resting compact pill (minimal, recording) -- roomy enough
+  --ov-rest-w: 216px; /* resting compact pill (minimal, recording) -- roomy enough
                          for the English working label before the grow starts */
   --ov-pill-w: 184px; /* base width / Live pill before it opens or collapses */
   --ov-work-w: 216px; /* working pill (transcribing / polishing) -- wide enough to
@@ -113,7 +113,7 @@
 /* Shared base card. Flat: theme surface + hairline border, no shadow or blur. */
 .scard {
   width: var(--ov-pill-w);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -153,7 +153,7 @@
 }
 .scard.working {
   width: var(--ov-work-w);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 /* Compact form: two fixed widths so the recording→working change is an animatable
@@ -247,7 +247,8 @@
 }
 .sbase-l {
   display: flex;
-  padding-left: 5px;
+  padding-left: 4px;
+  gap: 10px;
   align-items: center;
   justify-self: start;
 }
@@ -258,16 +259,18 @@
   justify-self: end;
 }
 .sdot {
-  width: 7px;
-  height: 7px;
+  /* Ámbar: el diseño reserva este color para SEÑAL VIVA (grabando).
+     El azul es marca y foco. Ver src/styles/theme.css. */
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--s-accent);
+  background: var(--brand);
   flex: none;
   animation: sdot-pulse 1.9s infinite;
 }
 @keyframes sdot-pulse {
   0% {
-    box-shadow: 0 0 0 0 var(--s-accent-soft);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 45%, transparent);
   }
   70% {
     box-shadow: 0 0 0 7px transparent;
@@ -290,18 +293,18 @@
 /* Waveform — simple reactive bars, themed; heights set inline from mic levels. */
 .swave {
   display: flex;
-  align-items: center;
-  gap: 3px;
+  align-items: flex-end;
+  gap: 2px;
   padding-right: 8px;
   height: 18px;
   flex: none;
 }
 .swave i {
-  width: 4px;
+  width: 2px;
   min-height: 3px;
   max-height: 18px;
-  border-radius: 2px;
-  background: var(--s-accent);
+  border-radius: 1px;
+  background: var(--brand);
   transition: height 80ms linear;
 }
 .sx {
@@ -344,7 +347,7 @@
   height: 13px;
   border-radius: 50%;
   border: 2px solid var(--s-hair);
-  border-top-color: var(--s-accent);
+  border-top-color: var(--accent);
   animation: sspin 0.7s linear infinite;
   flex: none;
 }
@@ -353,8 +356,19 @@
     transform: rotate(1turn);
   }
 }
+.sstate {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--fg);
+  white-space: nowrap;
+  flex: none;
+}
+
 .swork-label {
-  font-size: 11.5px;
+  font-family: ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.12em;
+  font-size: 11px;
   color: var(--s-muted);
   white-space: nowrap;
   padding: 0 8px; /* breathing room from the spinner / cancel when content-sized */

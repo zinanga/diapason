@@ -674,7 +674,9 @@
     }
   },
   "overlay": {
-    "transcribing": "Transcribing...",
-    "processing": "Processing..."
+    "transcribing": "TRANSCRIBING",
+    "processing": "PROCESSING",
+    "listening": "LISTENING",
+    "inserted": "INSERTED"
   }
 }

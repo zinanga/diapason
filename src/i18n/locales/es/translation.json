@@ -671,8 +671,10 @@
     }
   },
   "overlay": {
-    "transcribing": "Transcribiendo...",
-    "processing": "Procesando..."
+    "transcribing": "TRANSCRIBIENDO",
+    "processing": "PROCESANDO",
+    "listening": "ESCUCHANDO",
+    "inserted": "INSERTADO"
   },
   "whatsNew": {
     "title": "Nuevo en Diapasón v{{version}}"

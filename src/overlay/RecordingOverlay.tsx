@@ -116,9 +116,13 @@ const RecordingOverlay: React.FC = () => {
     setupEventListeners();
   }, []);
 
-  // Elapsed timer while the Live overlay is visible.
+  // Contador mientras se graba. Corre tanto en la píldora compacta como en el
+  // panel Live: el diseño muestra el tiempo en los dos, y sin esto la compacta
+  // se quedaba clavada en 0:00.
   useEffect(() => {
-    if (state !== "streaming" || !isVisible) return;
+    const recording = state === "streaming" || state === "recording";
+    if (!recording || !isVisible) return;
+    setElapsed(0);
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(id);
   }, [state, isVisible]);
@@ -182,10 +186,15 @@ const RecordingOverlay: React.FC = () => {
 
   // dot (left) | waveform (center) | timer + cancel (right) — same structure for
   // pill & panel, so the Live morph is a pure width change.
+  // El diseño (bloque 1a, "Overlay de grabación — estados") pone SIEMPRE una
+  // etiqueta en mayúsculas junto al punto: sin ella no se distingue "grabando"
+  // de "la app está ahí". La animación sola no basta — con poco nivel de micro
+  // las ondas apenas se mueven y el overlay parece muerto.
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l">
         <span className="sdot" />
+        <span className="sstate">{t("overlay.listening")}</span>
       </div>
       {waveform}
       <div className="sbase-r">
@@ -276,7 +285,7 @@ const RecordingOverlay: React.FC = () => {
       <div
         className={`scard compact ${working && isVisible ? "cworking" : ""}`}
       >
-        {working ? workingRow(workLabel, true) : listeningRow(false, true)}
+        {working ? workingRow(workLabel, true) : listeningRow(true, true)}
       </div>
     </div>
   );
