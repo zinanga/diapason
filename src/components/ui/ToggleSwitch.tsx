@@ -24,15 +24,8 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   grouped = false,
   tooltipPosition = "top",
 }) => {
-  return (
-    <SettingContainer
-      title={label}
-      description={description}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-      disabled={disabled}
-      tooltipPosition={tooltipPosition}
-    >
+  const control = (
+    <>
       <label
         className={`flex items-center ${disabled || isUpdating ? "cursor-not-allowed" : "cursor-pointer"}`}
       >
@@ -51,6 +44,27 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
           <div className="w-4 h-4 border-2 border-logo-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
+    </>
+  );
+
+  // Sin título ni descripción no hay ajuste que envolver: quien llama ya puso la
+  // etiqueta por su cuenta (es lo que hace el detalle de Perfiles). Envolverlo
+  // igualmente añadía un contenedor fantasma con su icono de información y un
+  // bocadillo vacío al pasar por encima.
+  if (!label.trim() && !description.trim()) {
+    return <div className="relative flex items-center">{control}</div>;
+  }
+
+  return (
+    <SettingContainer
+      title={label}
+      description={description}
+      descriptionMode={descriptionMode}
+      grouped={grouped}
+      disabled={disabled}
+      tooltipPosition={tooltipPosition}
+    >
+      {control}
     </SettingContainer>
   );
 };

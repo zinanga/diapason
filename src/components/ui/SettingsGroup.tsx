@@ -14,7 +14,7 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
   return (
     <div className="space-y-2">
       {title && (
-        <div className="px-4">
+        <div className="px-6">
           <h2 className="text-xs font-medium text-mid-gray uppercase tracking-wide">
             {title}
           </h2>
@@ -23,8 +23,11 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
           )}
         </div>
       )}
-      <div className="bg-background border border-mid-gray/20 rounded-lg overflow-visible">
-        <div className="divide-y divide-mid-gray/20">{children}</div>
+      {/* Sin caja: el grupo se lee por su título y por las líneas que separan
+          sus filas, la misma gramática que el detalle de Perfiles. Encajonar
+          cada grupo hacía que la vista saltara al cambiar de pestaña. */}
+      <div className="divide-y divide-border border-y border-border">
+        {children}
       </div>
     </div>
   );

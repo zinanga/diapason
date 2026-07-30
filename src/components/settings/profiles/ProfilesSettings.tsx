@@ -42,10 +42,20 @@ interface RowProps {
   children: React.ReactNode;
 }
 
-/** Fila del detalle: etiqueta a un lado, control al otro, separadas por línea. */
+/**
+ * Fila del detalle: etiqueta y control lado a lado SOLO si el panel da de sí.
+ *
+ * El detalle es la tercera columna (navegación 208 + lista 288), así que en la
+ * ventana por defecto de 680 le quedan 184 px, 136 descontado el padding —
+ * menos de lo que piden el campo (240) y el desplegable (200). Puestos en fila
+ * el control desborda y la etiqueta, con `min-w-0`, encoge hasta cero y su
+ * texto acaba pintado encima. Por eso la disposición base es apilada y la fila
+ * horizontal es la excepción: se activa por consulta de contenedor, midiendo el
+ * ANCHO DEL PANEL y no el de la ventana, que es lo que de verdad manda aquí.
+ */
 const Row: React.FC<RowProps> = ({ label, description, children }) => (
-  <div className="flex items-start justify-between gap-6 border-b border-border px-6 py-4">
-    <div className="min-w-0 max-w-[46%]">
+  <div className="flex flex-col gap-2.5 border-b border-border px-6 py-4 @min-[420px]:flex-row @min-[420px]:items-start @min-[420px]:justify-between @min-[420px]:gap-6">
+    <div className="min-w-0 @min-[420px]:max-w-[46%]">
       <p className="text-[13px] text-fg">{label}</p>
       {description && (
         <p className="mt-1 text-[11.5px] leading-snug text-fg-muted">
@@ -53,7 +63,9 @@ const Row: React.FC<RowProps> = ({ label, description, children }) => (
         </p>
       )}
     </div>
-    <div className="flex shrink-0 items-center gap-3">{children}</div>
+    <div className="flex w-full items-center gap-3 @min-[420px]:w-auto @min-[420px]:shrink-0">
+      {children}
+    </div>
   </div>
 );
 
@@ -105,12 +117,12 @@ const ProfileDetail: React.FC<ProfileDetailProps> = ({
         </p>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="@container flex-1 overflow-y-auto">
         <Row label={t("settings.profiles.name")}>
           <Input
             type="text"
             variant="compact"
-            className="min-w-[240px]"
+            className="w-full @min-[420px]:min-w-[240px]"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={commitName}
@@ -130,6 +142,9 @@ const ProfileDetail: React.FC<ProfileDetailProps> = ({
             onSelect={(value) => onChange({ ...profile, language: value })}
             placeholder={t("settings.profiles.useGlobalLanguage")}
             disabled={isUpdating}
+            // El `min-w-[200px]` vive dentro del botón del Dropdown y lo
+            // comparten 21 pantallas: se neutraliza aquí, no en el componente.
+            className="w-full [&>button]:min-w-0"
           />
         </Row>
 
@@ -176,21 +191,23 @@ const ProfileDetail: React.FC<ProfileDetailProps> = ({
               }
               placeholder={t("settings.profiles.defaultPrompt")}
               disabled={isUpdating}
+              className="w-full [&>button]:min-w-0"
             />
           </Row>
         )}
       </div>
 
-      <footer className="flex items-center justify-between border-t border-border px-6 py-4">
+      {/* Mismo criterio que las filas: en panel estrecho, uno debajo del otro. */}
+      <footer className="@container flex flex-col gap-2 border-t border-border px-6 py-4 @min-[420px]:flex-row @min-[420px]:items-center @min-[420px]:justify-between">
         <button
           type="button"
-          className="cursor-pointer text-[13px] text-danger transition-opacity hover:opacity-70 disabled:opacity-40"
+          className="cursor-pointer self-start whitespace-nowrap text-[13px] text-danger transition-opacity hover:opacity-70 disabled:opacity-40"
           onClick={() => onDelete(profile.id)}
           disabled={isUpdating}
         >
           {t("settings.profiles.delete")}
         </button>
-        <p className="text-[11.5px] text-fg-muted">
+        <p className="text-[11.5px] leading-snug text-fg-muted">
           {t("settings.profiles.savedOnType")}
         </p>
       </footer>
