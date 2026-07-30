@@ -1,4 +1,6 @@
-use crate::audio_toolkit::{apply_custom_words, filter_transcription_output};
+use crate::audio_toolkit::{
+    apply_custom_words, apply_literal_replacements, filter_transcription_output,
+};
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::model::{EngineType, ModelManager};
 use crate::settings::{
@@ -1660,6 +1662,17 @@ fn post_process_transcription_text(
     } else {
         raw
     };
+
+    // Verbatim table last: it repairs the spelling the initial prompt cannot
+    // reach (camelCase, accents, agglutinated names) and, unlike the fuzzy pass
+    // above, it runs for every model family — the prompt is not a substitute,
+    // since a whisper prompt only biases and never guarantees an orthography.
+    let pairs: Vec<(String, String)> = settings
+        .literal_replacements
+        .iter()
+        .map(|r| (r.from.clone(), r.to.clone()))
+        .collect();
+    let corrected = apply_literal_replacements(&corrected, &pairs);
 
     filter_transcription_output(
         &corrected,

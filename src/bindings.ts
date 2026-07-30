@@ -967,6 +967,12 @@ whisper_initial_prompt?: string;
  */
 anti_hallucination?: boolean; 
 /**
+ * Verbatim find/replace table applied after transcription. Fixes the
+ * spelling defects a soft prompt cannot: camelCase identifiers, accents and
+ * agglutinated proper names. See `default_literal_replacements`.
+ */
+literal_replacements?: LiteralReplacement[]; 
+/**
  * Named transcription presets, each bound to a `profile:<id>` shortcut.
  */
 transcription_profiles?: TranscriptionProfile[] }
@@ -996,6 +1002,17 @@ export type ImplementationChangeResult = { success: boolean;
 reset_bindings: string[] }
 export type KeyboardImplementation = "tauri" | "handy_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
+/**
+ * One verbatim find/replace applied to the finished transcription.
+ * 
+ * Deliberately dumber than `custom_words`: exact, case-sensitive, no
+ * Levenshtein and no Soundex. The fuzzy corrector combines a phonetic match
+ * with a 0.3 score multiplier, which on Spanish lets an n-gram swallow the
+ * function word next to it ("imperiales con su" → "Imperio Agéntico"). A
+ * literal table cannot alter anything it did not match exactly, so it is safe
+ * to ship enabled by default.
+ */
+export type LiteralReplacement = { from: string; to: string }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }

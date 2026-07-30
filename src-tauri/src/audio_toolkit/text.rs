@@ -186,6 +186,89 @@ pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -
     result.join(" ")
 }
 
+/// Splits a word (or a joined span of words) into leading punctuation, the
+/// alphanumeric core, and trailing punctuation.
+///
+/// Byte-index safe, unlike `extract_punctuation`, which counts characters and
+/// slices by that count — fine for ASCII, wrong the moment «¿» or a quote made
+/// of more than one byte leads the word.
+fn split_outer_punctuation(span: &str) -> (&str, &str, &str) {
+    let Some(start) = span
+        .char_indices()
+        .find(|(_, c)| c.is_alphanumeric())
+        .map(|(i, _)| i)
+    else {
+        return (span, "", "");
+    };
+    let end = span
+        .char_indices()
+        .rev()
+        .find(|(_, c)| c.is_alphanumeric())
+        .map(|(i, c)| i + c.len_utf8())
+        .unwrap_or(span.len());
+
+    (&span[..start], &span[start..end], &span[end..])
+}
+
+/// Applies verbatim find/replace pairs to a transcription.
+///
+/// Exact and case-sensitive: a span is rewritten only when its alphanumeric core
+/// equals `from` character for character. Nothing is scored, so nothing can be
+/// approximately matched and nothing adjacent can be consumed — the property
+/// `apply_custom_words` cannot offer, since its Soundex branch scales the
+/// Levenshtein score by 0.3 and happily absorbs a neighbouring "y" or "con".
+///
+/// Multi-word keys are supported ("vibe coding" → "vibecoding"): candidate spans
+/// are tried longest-first, so "Cloud Code" wins over a hypothetical "Cloud".
+/// Punctuation around a span is preserved ("Diapason." → "Diapasón."); interior
+/// punctuation is part of the compared core and therefore has to match too.
+pub fn apply_literal_replacements(text: &str, replacements: &[(String, String)]) -> String {
+    if replacements.is_empty() {
+        return text.to_string();
+    }
+
+    let max_span = replacements
+        .iter()
+        .map(|(from, _)| from.split_whitespace().count())
+        .max()
+        .unwrap_or(1)
+        .clamp(1, 8);
+
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let mut result: Vec<String> = Vec::with_capacity(words.len());
+    let mut i = 0;
+
+    while i < words.len() {
+        let mut matched = false;
+
+        for n in (1..=max_span).rev() {
+            if i + n > words.len() {
+                continue;
+            }
+
+            let span = words[i..i + n].join(" ");
+            let (prefix, core, suffix) = split_outer_punctuation(&span);
+            if core.is_empty() {
+                continue;
+            }
+
+            if let Some((_, to)) = replacements.iter().find(|(from, _)| from == core) {
+                result.push(format!("{}{}{}", prefix, to, suffix));
+                i += n;
+                matched = true;
+                break;
+            }
+        }
+
+        if !matched {
+            result.push(words[i].to_string());
+            i += 1;
+        }
+    }
+
+    result.join(" ")
+}
+
 /// Preserves the case pattern of the original word when applying a replacement
 fn preserve_case_pattern(original: &str, replacement: &str) -> String {
     if original.chars().all(|c| c.is_uppercase()) {
@@ -390,6 +473,71 @@ mod tests {
         let custom_words = vec![];
         let result = apply_custom_words(text, &custom_words, 0.5);
         assert_eq!(result, "hello world");
+    }
+
+    fn pairs(raw: &[(&str, &str)]) -> Vec<(String, String)> {
+        raw.iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn test_literal_replacements_exact_and_multiword() {
+        let table = pairs(&[
+            ("Cloud Code", "Claude Code"),
+            ("UseEffect", "useEffect"),
+            ("use of store", "useAuthStore"),
+        ]);
+        assert_eq!(
+            apply_literal_replacements("con Cloud Code y UseEffect en use of store", &table),
+            "con Claude Code y useEffect en useAuthStore"
+        );
+    }
+
+    #[test]
+    fn test_literal_replacements_keep_surrounding_punctuation() {
+        let table = pairs(&[("Diapason", "Diapasón"), ("Voz Imperio", "VozImperio")]);
+        assert_eq!(
+            apply_literal_replacements("¿Diapason? «Voz Imperio», sí.", &table),
+            "¿Diapasón? «VozImperio», sí."
+        );
+    }
+
+    #[test]
+    fn test_literal_replacements_are_case_sensitive() {
+        let table = pairs(&[("Skull", "Skool")]);
+        // Lowercase "skull" is left alone on purpose: case-insensitive matching
+        // would rewrite legitimate prose that merely sounds like a term.
+        assert_eq!(
+            apply_literal_replacements("skull y Skull", &table),
+            "skull y Skool"
+        );
+    }
+
+    #[test]
+    fn test_literal_replacements_never_consume_neighbours() {
+        // The defect this whole function exists to avoid: the fuzzy corrector
+        // eats the function word next to a match. Verbatim matching cannot.
+        let table = pairs(&[("Imperio Agéntico", "Imperio Agéntico")]);
+        let text = "los imperiales con su fueguito en el Imperio Agéntico";
+        assert_eq!(apply_literal_replacements(text, &table), text);
+    }
+
+    #[test]
+    fn test_literal_replacements_prefers_longest_span() {
+        let table = pairs(&[("use state", "useState"), ("state", "estado")]);
+        assert_eq!(
+            apply_literal_replacements("un use state aquí", &table),
+            "un useState aquí"
+        );
+    }
+
+    #[test]
+    fn test_empty_literal_replacements() {
+        assert_eq!(
+            apply_literal_replacements("nada  que   cambiar", &[]),
+            "nada  que   cambiar"
+        );
     }
 
     #[test]

@@ -93,6 +93,20 @@ pub struct LLMPrompt {
     pub prompt: String,
 }
 
+/// One verbatim find/replace applied to the finished transcription.
+///
+/// Deliberately dumber than `custom_words`: exact, case-sensitive, no
+/// Levenshtein and no Soundex. The fuzzy corrector combines a phonetic match
+/// with a 0.3 score multiplier, which on Spanish lets an n-gram swallow the
+/// function word next to it ("imperiales con su" → "Imperio Agéntico"). A
+/// literal table cannot alter anything it did not match exactly, so it is safe
+/// to ship enabled by default.
+#[derive(Serialize, Deserialize, Debug, Clone, Type)]
+pub struct LiteralReplacement {
+    pub from: String,
+    pub to: String,
+}
+
 /// A named transcription preset bound to its own shortcut (`profile:<id>` in
 /// the bindings map). Empty/None fields fall back to the global setting, so a
 /// profile only overrides what it explicitly sets.
@@ -490,6 +504,11 @@ pub struct AppSettings {
     /// runaway repetition loops on long silences. Whisper-family models only.
     #[serde(default = "default_anti_hallucination")]
     pub anti_hallucination: bool,
+    /// Verbatim find/replace table applied after transcription. Fixes the
+    /// spelling defects a soft prompt cannot: camelCase identifiers, accents and
+    /// agglutinated proper names. See `default_literal_replacements`.
+    #[serde(default = "default_literal_replacements")]
+    pub literal_replacements: Vec<LiteralReplacement>,
     /// Named transcription presets, each bound to a `profile:<id>` shortcut.
     #[serde(default)]
     pub transcription_profiles: Vec<TranscriptionProfile>,
@@ -497,6 +516,56 @@ pub struct AppSettings {
 
 fn default_anti_hallucination() -> bool {
     true
+}
+
+/// Spanish-first defaults, measured against two dictations of the same 53-term
+/// list (2026-07-29/30). Every entry is a form the model actually produced.
+///
+/// Two rules govern what may go in here, both learned from those runs:
+///
+/// 1. Only strings that are not words of the dictation language. `trazo`,
+///    `dictum`, `hook`, `cursor`, `vox` and `abrax` all came out lowercase and
+///    are deliberately absent: forcing their case would corrupt legitimate
+///    prose. Those stay the initial prompt's job.
+/// 2. Both observed spellings of the same term earn separate rows — whisper
+///    split the `useX` identifiers in the first run and agglutinated them in
+///    the second.
+fn default_literal_replacements() -> Vec<LiteralReplacement> {
+    [
+        // Heard as an existing English word; the prompt alone never wins these.
+        ("Cloud Code", "Claude Code"),
+        ("Skull", "Skool"),
+        ("Tachygraf", "Takhygraphe"),
+        ("Superbase", "Supabase"),
+        ("Antrofic", "Anthropic"),
+        // Proper names the model splits in two.
+        ("Blue Flow", "Blueflow"),
+        ("Voz Imperio", "VozImperio"),
+        ("imperio agéntico", "Imperio Agéntico"),
+        ("vibe coding", "vibecoding"),
+        ("vibe codear", "vibecodear"),
+        // camelCase identifiers: dictated as words, written as one token.
+        ("Create Client", "createClient"),
+        ("CreateClient", "createClient"),
+        ("Use Effect", "useEffect"),
+        ("UseEffect", "useEffect"),
+        ("use of store", "useAuthStore"),
+        ("Use Auth Store", "useAuthStore"),
+        ("UseAuthStore", "useAuthStore"),
+        ("use state", "useState"),
+        ("UseState", "useState"),
+        ("zustand", "Zustand"),
+        // Casing and accents on names that are not Spanish words.
+        ("N8n", "n8n"),
+        ("N8N", "n8n"),
+        ("Diapason", "Diapasón"),
+    ]
+    .into_iter()
+    .map(|(from, to)| LiteralReplacement {
+        from: from.to_string(),
+        to: to.to_string(),
+    })
+    .collect()
 }
 
 fn default_model() -> String {
@@ -942,6 +1011,7 @@ pub fn get_default_settings() -> AppSettings {
         overlay_style: default_overlay_style(),
         whisper_initial_prompt: String::new(),
         anti_hallucination: default_anti_hallucination(),
+        literal_replacements: default_literal_replacements(),
         transcription_profiles: Vec::new(),
     }
 }
