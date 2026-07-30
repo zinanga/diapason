@@ -26,14 +26,32 @@ Diapasón es un **fork declarado de [Handy](https://github.com/cjpais/Handy)** (
 
 ## Qué añade sobre Handy
 
-|                           | Qué hace                                                    | Por qué                                                      |
-| ------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------ |
-| **Antialucinación**       | acota el contexto que Whisper arrastra entre ventanas       | Whisper inventa texto en los silencios largos; esto lo corta |
-| **Prompt de vocabulario** | le pasas nombres propios y jerga antes de transcribir       | «Zustand» deja de salir como «su stand»                      |
-| **Perfiles con atajo**    | cada perfil con su idioma, traducción, post-proceso y tecla | dictar código, correo o traducir sin entrar en ajustes       |
-| **Errores visibles**      | los fallos de post-proceso salen en pantalla                | antes fallaban en silencio y parecía que no habías dictado   |
+|                             | Qué hace                                                     | Por qué                                                       |
+| --------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- |
+| **Correcciones personales** | reemplazos literales sobre el texto ya transcrito            | «Cloud Code» pasa a «Claude Code» y «Diapason» a «Diapasón»    |
+| **Perfiles con atajo**      | cada perfil con su idioma, traducción, post-proceso y tecla  | dictar código, correo o traducir sin entrar en ajustes        |
+| **Errores visibles**        | los fallos de post-proceso salen en pantalla                 | antes fallaban en silencio y parecía que no habías dictado    |
+| **Prompt de vocabulario**   | le pasas nombres propios y jerga antes de transcribir        | existe y se puede usar, pero **medido aporta muy poco** (ver abajo) |
 
-Las dos primeras **solo funcionan con modelos de la familia Whisper**. Con otros (Parakeet, Canary, Moonshine…) la interfaz las muestra desactivadas y explica por qué, en vez de aceptarlas y no aplicarlas.
+Las correcciones personales son **exactas y sensibles a mayúsculas**: no usan
+distancias ni fonética, así que no pueden alterar nada que no case carácter por
+carácter. Es a propósito — el corrector difuso que trae Handy multiplica su
+puntuación cuando coincide el Soundex, y en castellano acaba tragándose la
+palabra funcional de al lado.
+
+El **prompt de vocabulario** solo funciona con modelos de la familia Whisper; con
+otros (Parakeet, Canary, Moonshine…) la interfaz lo muestra desactivado y explica
+por qué, en vez de aceptarlo y no aplicarlo.
+
+> **Sobre la antialucinación, que estuvo aquí anunciada:** se implementó, se midió
+> el 30-jul y **no hace nada** — el texto sale idéntico con la función encendida y
+> apagada. Uno de sus dos parámetros se fijaba al valor que ya traía el backend
+> por defecto. Se retiró. Lo que evita la basura en los silencios es el detector
+> de voz, que los descarta durante la captura. La medición completa, con los
+> hashes de cada prueba, está en [`CONFIGURACION-DEMO.md`](CONFIGURACION-DEMO.md).
+>
+> Por el mismo camino se midió el prompt de vocabulario: sobre el mismo audio,
+> ponerlo o no ponerlo cambia **una coma en 926 caracteres**.
 
 ### Diferencias de comportamiento respecto a Handy
 
