@@ -878,6 +878,32 @@ cambiar la repetición por invención variada — «Vamos a verlo a seiner forma
 detectable automáticamente y pasa por texto plausible. Cualquier métrica de
 repetición sobre esto hay que contrastarla leyendo la salida.
 
+### Y no hace falta provocarlo: pasó solo, esa misma tarde
+
+Lo anterior es un caso fabricado. Este no. A las **16:36** del 30-jul, mientras se
+preparaba el audio del test, quedó registrado en el historial un dictado de
+**7,9 segundos** cuyo resultado completo fue:
+
+    Gracias por ver el video.
+
+Es el arquetipo de la alucinación de Whisper sobre silencio: la fórmula de
+despedida de los subtítulos de YouTube, de los que el modelo aprendió. El audio
+está preservado en
+`audios-referencia/2026-07-30-1636-alucinacion-espontanea-gracias-por-ver-el-video.wav`
+y no tiene nada dentro: **RMS 15**, cuando un habla normal ronda 800-3000, con
+un pico de 329. Siete segundos y medio de silencio → una frase inventada, con
+`anti_hallucination` activo.
+
+Precisión importante para no vender el hallazgo por más de lo que es: **ocurrió
+dentro de la ventana en la que el VAD estaba desactivado** para poder grabar el
+audio del test. O sea que es coherente con lo que dice el apartado siguiente —
+el VAD es la protección real — y no contradice nada.
+
+Lo que aporta es otra cosa, y es lo que ningún test dirigido habría encontrado:
+el modo de fallo natural no es «grabar noventa segundos de ruido de sala», es
+**pulsar el atajo y no decir nada**. Eso lo hace cualquiera, a diario, sin
+querer. Y salió de usar la herramienta, no de una prueba diseñada.
+
 ### Lo que de verdad protege es el VAD
 
 Por eso esto no se había visto nunca en uso normal: con `vad_enabled: true` (el
