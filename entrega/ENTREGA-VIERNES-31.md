@@ -49,6 +49,31 @@ tiene que ser el mismo que se ha hasheado.
 SHA256  22bec1c0b082726832ce505d21a5ee61db03182339240e01a607a0e7d9759868
 ```
 
+## QA de instalación limpia — lo hace Fer
+
+Es el único que prueba lo que la máquina de desarrollo no puede: allí ya hay
+ajustes escritos, modelo descargado y permisos concedidos. En un Mac limpio se
+recorren cuatro caminos que **nadie ha probado con 0.4.0**.
+
+- [ ] **Gatekeeper y permisos desde cero.** Arrastrar a Aplicaciones, expulsar el
+      disco, abrir con clic derecho, conceder micrófono y accesibilidad. Si algo
+      de esto necesita más de una explicación, hay que arreglar el texto de la
+      landing, no al usuario.
+- [ ] **Descarga del modelo en el primer arranque.** El `.dmg` no lleva modelo de
+      transcripción: se baja ~1 GB la primera vez. Cronometrar y comprobar que la
+      interfaz explica lo que está pasando en vez de parecer colgada.
+- [ ] **La tabla de correcciones aparece sola.** En una instalación limpia no hay
+      `settings_store.json`, así que las 27 entradas las tiene que poner el valor
+      por defecto de `serde`. Comprobar dictando «Cloud Code» → debe salir
+      «Claude Code». Si no aparece, la función no viaja en el `.dmg` y hay que
+      saberlo esta noche, no mañana.
+- [ ] **El onboarding.** Hay un fallo conocido y diferido: la pantalla de
+      bienvenida parpadea y salta a permisos. Está descrito al final de este
+      documento y en `CONFIGURACION-DEMO.md` — no es nuevo. Lo que interesa saber
+      es **si sigue pasando en 0.4.0** o si desapareció con el rediseño.
+- [ ] **Un dictado real** con su voz y su micro. Es además la segunda persona que
+      prueba la app: hasta ahora todas las mediciones son de una sola voz.
+
 ## Antes de publicar
 
 - [ ] **Abrir el repositorio.** Hoy es privado. El cierre del vídeo dice «todo lo
