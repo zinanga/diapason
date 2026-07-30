@@ -544,6 +544,13 @@ fn default_literal_replacements() -> Vec<LiteralReplacement> {
         ("imperio agéntico", "Imperio Agéntico"),
         ("vibe coding", "vibecoding"),
         ("vibe codear", "vibecodear"),
+        // Variantes vistas en la 3ª pasada (30-jul). Los errores MUTAN entre
+        // dictados: lo que un día sale «Skull» al siguiente sale «School», y
+        // «vibe coding» pasó a «Bytecoding». Alimentar esta lista es continuo.
+        ("Bytecoding", "vibecoding"),
+        ("Bytecodear", "vibecodear"),
+        ("Taquígrafe", "Takhygraphe"),
+        ("Junghook", "hook"),
         // camelCase identifiers: dictated as words, written as one token.
         ("Create Client", "createClient"),
         ("CreateClient", "createClient"),
