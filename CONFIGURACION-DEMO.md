@@ -412,3 +412,492 @@ Estado por defecto tras instalar, y lo que hay que cambiar:
 Los ajustes se persisten en:
 `~/Library/Application Support/com.pais.handy/settings_store.json` (bajo la
 clave `settings`). Útil para verificar el estado real sin fiarse de la interfaz.
+
+---
+
+## 🐞 Abierto: la bienvenida no manda el onboarding (visto en el `.dmg` 0.3.1)
+
+**Síntoma observado** (28-jul, probando el `.dmg` descargado de la release
+0.3.1): la pantalla de bienvenida **parpadea** — aparece un instante y salta
+sola a la de permisos, sin que dé tiempo a leerla ni a pulsar «Empezar».
+
+> **No se ha reproducido** (28-jul, misma tarde). Tras limpiar los registros de
+> permisos con `tccutil` y volver a poner `onboarding_completed` a `false`, el
+> asistente recorrió sus pasos en orden y sin parpadeo. La hipótesis que queda
+> en pie es que el parpadeo era **un síntoma del estado atascado de permisos**
+> descrito en el apartado siguiente, no un fallo propio del asistente. Lo que sí
+> sigue siendo cierto es lo de abajo: la bienvenida va en el sitio equivocado.
+
+**Lo que dice el código** (árbol limpio en `bf4bb8b`, o sea, es el mismo que
+lleva el `.dmg`): el orden real de los pasos es
+
+    permisos → bienvenida → elección de modelo → «ya está»
+
+`App.tsx` arranca a un usuario nuevo en `onboardingStep = "accessibility"`
+(`checkOnboardingStatus`), y la bienvenida **no es un paso del asistente**: vive
+dentro de `Onboarding.tsx` (el paso de modelos), detrás de un `useState`
+local `showWelcome`. Es decir, la pantalla que su propio comentario describe
+como «la primerísima pantalla tras instalar» es en realidad la segunda.
+
+Eso ya es un defecto por sí solo, y además explica que el aviso de Gatekeeper
+llegue tarde. Pero **no explica el parpadeo tal y como se vio**: para que la
+bienvenida se pinte y luego aparezcan los permisos haría falta un salto hacia
+atrás que el código no hace. Falta reproducirlo antes de tocar nada.
+
+**Cómo reproducirlo, anotando las tres variables que cambian el recorrido:**
+
+1. ¿Había una versión anterior instalada? El `identifier` sigue siendo
+   `com.pais.handy`, así que **los permisos y los ajustes sobreviven** entre
+   builds. Con permisos ya concedidos, el paso de permisos se autocompleta
+   (marca verde + 300 ms) y suelta al usuario directamente en la bienvenida.
+2. ¿`onboarding_completed` estaba a `true` en `settings_store.json`? Entonces
+   ni siquiera es un usuario nuevo: se salta modelos y bienvenida.
+3. Firma ad-hoc distinta en cada build → macOS puede dejar los permisos
+   atascados en «Esperando…». Limpiar con
+   `tccutil reset Accessibility com.pais.handy` y lo mismo con `Microphone`.
+
+Para una prueba limpia de verdad: borrar
+`~/Library/Application Support/com.pais.handy/`, hacer los dos `tccutil reset`,
+y anotar qué pantalla sale primero.
+
+**Sospechas a mirar cuando haya repro**, en este orden:
+
+- El efecto de montaje de `AccessibilityOnboarding` depende de
+  `completeOnboarding`, que a su vez depende de `onComplete`
+  (`handleAccessibilityComplete`, una función nueva en cada render de `App`).
+  El efecto se vuelve a lanzar en cada render, así que `checkInitial()` puede
+  correr varias veces y encadenar varios `setTimeout(onComplete, 300)`.
+- `showWelcome` es estado local: si `Onboarding` se vuelve a montar, la
+  bienvenida reaparece desde cero.
+
+**Arreglo que se propone** (independiente de la causa del parpadeo): subir la
+bienvenida a paso propio del asistente en `App.tsx` — `"welcome" →
+"accessibility" → "model" → "ready"` — para que el argumento del producto y el
+rodeo de Gatekeeper se digan **antes** de pedir nada al sistema, y para que el
+paso deje de depender de un estado local que un remontaje reinicia.
+
+---
+
+## 🐞 Abierto: en Privacidad sale «Handy.app», y conceder el permiso no prende
+
+**Síntoma observado** (28-jul, sobre el `.dmg` 0.3.1): en
+_Ajustes → Privacidad y seguridad → Accesibilidad_ aparece una fila
+**`Handy.app`**, con icono en blanco y el interruptor encendido. Al segundo
+intento —solo salir de la app y volver a entrar— la fila pasó a llamarse
+**`Diapasón`**, con su icono, pero **apagada**; y la app se quedó colgada
+esperando un permiso que, para macOS, nunca se concedió.
+
+**No es que falte renombrar nada.** El bundle instalado ya está bien:
+
+    CFBundleName / CFBundleDisplayName = Diapasón
+    CFBundleExecutable                 = Diapason
+    CFBundleIdentifier                 = com.pais.handy
+
+Lo que falla es **a quién le pertenece el permiso**. macOS no guarda los
+permisos por identificador a secas: los guarda por identificador **+ firma del
+binario** (el `cdhash`). Nuestra firma es _ad-hoc_, y una firma ad-hoc **cambia
+en cada compilación**. Consecuencias, las dos que se vieron:
+
+- El registro viejo sobrevive a la desinstalación y sigue enseñando el nombre
+  con el que se apuntó en su día — de ahí `Handy.app` con el icono roto,
+  encendido y sin servir para nada.
+- Cuando macOS por fin registra el binario nuevo, lo trata como **otra app**:
+  fila nueva, apagada. El permiso que el usuario ya había dado no se hereda, y
+  la app espera indefinidamente.
+
+Es la misma raíz que el caveat de Gatekeeper: **sin firma de Developer ID y
+notarización, cada build es un desconocido para el sistema.** Ahí está el
+arreglo de verdad; lo de abajo es solo el apaño mientras tanto.
+
+**Apaño para probar un build nuevo** (hay que hacerlo en cada instalación, y es
+lo que convierte un «reinstalo y ya» en una prueba que de verdad arranca
+limpia):
+
+```bash
+# 1. cerrar la app, arrastrarla a la papelera y vaciarla
+# 2. borrar los registros de permisos, que NO se van con la app
+tccutil reset Accessibility com.pais.handy
+tccutil reset Microphone    com.pais.handy
+# 3. (opcional, para un usuario nuevo de verdad) tirar los ajustes
+rm -rf ~/"Library/Application Support/com.pais.handy"
+# 4. instalar, abrir con clic derecho → Abrir, y volver a conceder los permisos
+```
+
+**Para el guion de la demo y para la QA de Fer:** esto es exactamente lo que le
+va a pasar a cualquiera que actualice de 0.3.0 a 0.3.1 sin borrar nada — verá
+una fila `Handy.app` engañosamente encendida y la app colgada. Conviene decirlo
+en las notas de la release, no solo aquí.
+
+---
+
+## Turbo no traduce, y la app no lo dice — medido el 28-jul
+
+Queda cerrada la duda que arrastrábamos («¿Turbo traduce o no?»). **No traduce**,
+y no es opinable: lo declara el propio motor al cargar el modelo. Del
+`handy.log` de la sesión de pruebas, tres modelos cargados esa tarde:
+
+    whisper-large-v3-turbo   supports_translate=false
+    whisper-medium           supports_translate=true
+    whisper-small            supports_translate=true
+
+`transcription.rs` hace lo correcto con ese dato (línea ~1688):
+
+```rust
+let translate_to_en =
+    translate_to_english && model_supports_translate && source_language != Some("en");
+```
+
+Es decir: **si el modelo no sabe traducir, la app calla y transcribe en el
+idioma original.** El usuario activó «traducir al inglés» en el perfil
+`ES → EN`, pulsó su atajo, y le salió texto en español sin un solo aviso.
+
+**El defecto no es que Turbo no traduzca — es que la degradación es silenciosa.**
+Y hay un agravante: el log miente. La etiqueta `(translated)` de la línea de
+resultado se decide así (línea ~1445):
+
+```rust
+let translation_note = if settings.translate_to_english { " (translated)" } else { "" };
+```
+
+O sea, la pone según **lo que se pidió**, no según lo que se hizo. En el log de
+esa tarde hay una docena de transcripciones de Turbo marcadas `(translated)`
+cuyo texto está en español. Quien depure esto fiándose del log pierde la tarde.
+
+**Arreglo propuesto**, y ya existe el patrón exacto en la casa: el comando
+`loaded_model_is_whisper` + el hook `useModelIsWhisper` que desactiva y explica
+M1/M2 cuando el modelo no los soporta. Hacer lo mismo con la traducción —
+exponer `supports_translate` del modelo cargado y, en el editor de perfiles,
+desactivar el interruptor de traducción con su explicación. Y de paso, que la
+etiqueta del log diga la verdad. **No hay nada que tocar en `catalog.json`**: la
+capacidad no sale del catálogo, la reporta el motor al cargar.
+
+### Velocidad real, por fin sobre release y con modelos Whisper
+
+Sustituye a las cifras viejas (14x-61x), que eran de Canary-180M y de build de
+desarrollo. Esto es del `.dmg` 0.3.1, Metal (`MTL0`), M-serie:
+
+| Modelo   | n   | Audio medido | Coste                            | Rango real  |
+| -------- | --- | ------------ | -------------------------------- | ----------- |
+| Turbo    | 16  | 2,7 – 20,1 s | ≈ **0,65 s fijos** + 0,008 s/s   | 0,64–0,87 s |
+| Medium   | 9   | 8,8 – 44,2 s | ≈ **0,14 s fijos** + 0,041 s/s   | 0,59–2,34 s |
+
+Carga del modelo: 321–629 ms. Descarga de Medium (Q8_0): 20 s.
+
+**Lo interesante es la forma de las dos rectas, no el titular.** Turbo es
+casi plano: cueste 3 segundos de audio o 20, tarda ~0,7 s. Medium arranca casi
+sin peaje pero paga por segundo de audio. Se cruzan **alrededor de los 15 s**:
+por debajo Medium contesta antes, por encima gana Turbo.
+
+Eso explica la impresión de que «el Turbo deja esperando»: en dictados cortos,
+que son casi todos los de la demo, **Medium es efectivamente más rápido**. La
+etiqueta «Turbo» promete lo contrario.
+
+Aviso honesto sobre estos números: los rangos de audio de los dos modelos apenas
+se solapan (Turbo se probó corto, Medium largo), así que el cruce en 15 s es una
+**extrapolación**, no una medición. Para citarlo en público hay que probar los
+dos modelos con las mismas duraciones.
+
+### El post-proceso no escala con la longitud (confirmado)
+
+Cuatro invocaciones de Apple Intelligence esa tarde, con el reloj del log:
+
+| Salida    | Tiempo |
+| --------- | ------ |
+| 168 chars | 10 s   |
+| 188 chars | 8 s    |
+| 219 chars | 8 s    |
+| 445 chars | 9 s    |
+
+Se confirma lo que ya decía este documento: **es un coste fijo de ~8-10 s**.
+Texto casi tres veces más largo, mismo tiempo. Sigue valiendo la conclusión de
+usarlo para párrafos y no para frases.
+
+### Large v3 (Q5_K_M): traduce, y traducir le sale más barato que no traducir
+
+Segunda tanda de pruebas, misma tarde, con el micrófono del monitor LG —el peor
+de los disponibles— y música de fondo. Confirma lo que faltaba y aparece un
+resultado que no esperábamos.
+
+Lo primero, la capacidad, del log al cargar el modelo:
+
+    whisper-large-v3   supports_translate=true
+
+Así que la tabla de modelos queda cerrada: **traducen Small, Medium y Large v3;
+el único que no es Turbo.** Y las traducciones salieron efectivamente en inglés.
+
+| Modelo   | n   | Coste                          |
+| -------- | --- | ------------------------------ |
+| Turbo    | 16  | ≈ 0,65 s fijos + 0,008 s/s     |
+| Medium   | 9   | ≈ 0,14 s fijos + 0,041 s/s     |
+| Large v3 | 13  | ≈ 0,65 s fijos + 0,054 s/s     |
+
+Large v3 cuesta solo un 30 % más por segundo de audio que Medium, siendo un
+modelo mucho mayor (1,1 GB en Q5_K_M). En dictados de 20-40 s la diferencia
+absoluta es de menos de un segundo.
+
+**El hallazgo raro: traducir es más rápido que transcribir.** Dos audios de la
+misma duración exacta, 38,79 s:
+
+    español, sin traducir  ->  3,56 s
+    traducido a inglés     ->  2,66 s   (-25 %)
+
+No es ruido: las trece transcripciones traducidas caen sistemáticamente por
+debajo de las dos españolas. La explicación está en cómo funciona Whisper —
+decodifica **token a token**, así que el coste lo manda la longitud de la
+**salida**, no la del audio. Y el tokenizador de Whisper es de origen inglés: el
+español gasta más tokens por la misma idea. Traducir acorta la salida, y por eso
+sale más barato.
+
+Consecuencia práctica que conviene tener presente: **una demo que traduzca
+parecerá más rápida que la misma demo en español.** Si se enseñan las dos, no
+atribuir la diferencia al modelo.
+
+### El post-proceso se calienta: la primera invocación cuesta más
+
+En orden cronológico, la serie de esta tarde:
+
+| # | Salida    | Tiempo |
+| - | --------- | ------ |
+| 1 | 353 chars | 12 s   |
+| 2 | 447 chars | 10 s   |
+| 3 | 472 chars |  9 s   |
+| 4 | 149 chars |  8 s   |
+| 5 | 279 chars | 10 s   |
+| 6 | 257 chars |  8 s   |
+
+Dos lecturas, las dos útiles:
+
+1. **Se confirma otra vez que no escala con la longitud.** 149 caracteres
+   cuestan 8 s y 472 cuestan 9 s. La salida más larga de toda la serie es de las
+   más rápidas.
+2. **Hay calentamiento.** La primera invocación tras arrancar cuesta ~12 s y a
+   partir de la tercera se estabiliza en 8-10 s. La tanda anterior de la misma
+   tarde dio el mismo perfil (10, 8, 8, 9). Es un detalle de guion, no de código:
+   **hacer una invocación de calentamiento antes de grabar el vídeo**, o el
+   primer post-proceso que vea el espectador será el más lento de todos.
+
+**La cifra honesta para el guion**, sumando las dos partes: un dictado de 20 s
+con post-proceso son ~1,8 s de transcripción **+ 8-10 s de Apple Intelligence**.
+El usuario espera unos 10-12 s. La transcripción no es el cuello de botella —
+el post-proceso lo es, por un factor de cinco.
+
+### 🔴 El post-proceso de la demo cuesta 10 s y no hace nada (o empeora)
+
+Corrección de método antes del dato: todas las pruebas del 28-jul se hicieron
+con **el mismo micrófono**, el del monitor (`Audio de la pantalla LG UltraFine`,
+según el log). No hubo cambio de micro entre tandas.
+
+Con el micro descartado como variable, se fue a mirar qué hacía realmente el
+post-proceso. `history.db` guarda las dos versiones —`transcription_text` y
+`post_processed_text`— así que se pueden comparar. De las seis invocaciones de
+Apple Intelligence de esa tarde, las cinco que quedan en el historial:
+
+    4 de 5  ->  el texto salió IDÉNTICO, carácter por carácter
+    1 de 5  ->  el texto cambió
+
+Y el único cambio fue **pasar todo a minúsculas**:
+
+    RAW:  ... I say sorry ... It's a point. Well, let's finish here ... WhisperLarge V3 with Spanish-English ...
+    PP :  ... i say sorry ... it's a point. well, let's finish here ... whisperlarge v3 with spanish-english ...
+
+Es decir: ~57 segundos de espera acumulada esa tarde, y el único efecto medible
+sobre el texto fue **destruir las mayúsculas**.
+
+**Esto no es un fallo del post-proceso: es el prompt.** El que está seleccionado
+(`default_improve_transcriptions`, editado) dice:
+
+> Reescribe el texto cambiando las cantidades a cifras. «veinticinco mil» → «25000».
+
+Un prompt de cifras, aplicado a textos que no traen cantidades escritas con
+letra, no tiene nada que hacer — así que devolver el texto igual es lo correcto.
+El problema es de escaparate: **en el vídeo, el espectador va a esperar 10
+segundos mirando una pantalla para no ver ningún cambio.** Y si le toca la
+lotería, verá cómo la app le tira las mayúsculas.
+
+Hay además un factor agravante: el prompt está **en español** y se le está
+aplicando a **texto en inglés** (el perfil traduce antes de post-procesar). El
+modelo local de Apple es pequeño; instrucción en un idioma y texto en otro es
+justo el escenario donde se limita a devolver el texto con ruido de formato.
+
+**Decisiones que esto obliga a tomar antes del viernes**, por orden:
+
+1. **O se cambia el prompt por uno cuyo efecto se vea**, y se guioniza un dictado
+   que lo dispare (si es el de cifras: decir números con letra, en voz alta).
+2. **O se saca el post-proceso del vídeo.** Ya estaba fuera por los ~8 s; ahora
+   hay un segundo motivo, peor: no se le ve el resultado.
+3. En cualquier caso, **arreglar lo de las mayúsculas** — un post-proceso que
+   degrada el texto es peor que no tenerlo. Basta con decírselo al prompt.
+
+### Bonus: el micrófono configurado no era el que grababa
+
+En `settings_store.json`, `selected_microphone` es `"DJI Mic Mini-13BA36"`. El
+DJI no se conectó en todo el día. El log dice qué se abrió de verdad:
+
+    Using device: Ok("Audio de la pantalla LG UltraFine")
+
+La app cayó al dispositivo por defecto **sin decir nada**, y la interfaz sigue
+enseñando el DJI como micrófono elegido. Es el mismo patrón que la traducción
+que no traduce: **la configuración promete una cosa y el sistema hace otra, en
+silencio.** Merece el mismo arreglo — avisar en la interfaz cuando el micrófono
+configurado no está disponible.
+
+Nota positiva y nada menor: todas las mediciones de velocidad y todas las
+transcripciones limpias de esa tarde se hicieron **con el micro del monitor y
+con música de fondo**. El VAD abrió y cerró bien y el texto salió correcto. La
+robustez que se le atribuía al DJI la da la app.
+
+---
+
+## 🔴 La causa raíz del lío de permisos: la app se estaba ejecutando desde el `.dmg`
+
+Descubierto al final del 28-jul, mirando el proceso vivo:
+
+    /private/var/folders/.../T/AppTranslocation/4E4488FC-.../d/Diapasón.app/Contents/MacOS/Diapason
+
+La app **no estaba instalada en `/Applications`**: el `.dmg` seguía montado en
+`/Volumes/Diapasón` y se estaba abriendo desde ahí. macOS entonces aplica
+**App Translocation**: en vez de ejecutar la app donde está, la copia a una ruta
+temporal **aleatoria y de solo lectura**, distinta en cada arranque.
+
+Y ahí está la explicación completa de todo lo de esta mañana. TCC identifica a
+las apps por **ruta + firma**. Con una firma ad-hoc *y* una ruta que cambia en
+cada arranque, macOS no puede sostener el permiso de un arranque al siguiente:
+
+- la fila `Handy.app` encendida que no servía para nada,
+- la fila `Diapasón` que apareció después y salía apagada,
+- el interruptor que no se quedaba puesto,
+- y la app colgada esperando un permiso que nunca llegaba.
+
+No era una app frágil: era **una app sin instalar**.
+
+Corrección de lo que decía este documento antes: se dijo que reinstalar no
+arreglaba nada porque el binario del mismo `.dmg` tiene el mismo `cdhash`. El
+`cdhash` sí es el mismo — lo que faltaba ver es que **la ruta no lo era**. Lo
+que importa no es reinstalar: es **dónde** queda instalada.
+
+**El paso que faltaba en la secuencia, y que va al README y a las notas de la
+release:**
+
+> Arrastrar `Diapasón.app` del `.dmg` a la carpeta **Aplicaciones**, expulsar el
+> disco, y abrir la app **desde Aplicaciones** (clic derecho → Abrir la primera
+> vez). Abrirla desde el `.dmg` funciona, pero los permisos no se guardan.
+
+Arrastrar con el Finder a `/Applications` quita la translocación y fija la ruta.
+A partir de ahí los permisos se conceden una vez y se quedan.
+
+**Lo que esto NO invalida:** las mediciones de velocidad del 28-jul siguen
+siendo buenas. Los modelos se cargan desde `~/.cache/huggingface`, no desde el
+bundle, y el binario es el mismo; ejecutar desde un disco de solo lectura no
+cambia el tiempo de inferencia.
+
+## 🔴 M1 no evita alucinaciones — medido el 30-jul
+
+Cierra el caveat 1 del gate, pero **con el signo cambiado**. Las validaciones
+viejas de M1/M2 eran inválidas porque se hicieron con Canary-180M, donde la
+guarda `model_is_whisper` se salta ambas funciones: pasaron porque nada se
+rompió, no porque corrieran. Repetidas con **Whisper Large v3 Q5_K_M** sobre
+audio real, el resultado es que **M1 sí corre, y no sirve para lo que dice su
+nombre**.
+
+Método: un binario aparte que usa el mismo `transcribe-cpp` con las mismas
+opciones que arma `transcription.rs`, cargando el modelo una vez y disparando
+variantes contra **el mismo PCM**. Así la única variable es la perilla. El audio
+está preservado en `audios-referencia/`, fuera del repo.
+
+### El audio de prueba
+
+`2026-07-30-1637-test-M1-silencios-vad-off-audiotechnica.wav`, 76 s, grabado con
+la Audio-Technica y **con el VAD apagado**, porque el VAD filtra durante la
+captura (`recorder.rs:38-45`) y con él encendido los silencios no llegan ni al
+fichero ni al modelo. Guion: habla · 23 s de silencio limpio · habla · 23 s de
+silencio sucio (respiración, silla, teclado) · habla. Nivel medido: el silencio
+de sala está 12,1 dB por debajo del habla.
+
+### Sobre el audio real, M1 es inerte
+
+Cinco variantes, **md5 idéntico en las cinco** — texto byte a byte igual:
+
+    J1 M1 apagado, sin extensión whisper     14cd59ea
+    J2 M1 apagado, extensión por defecto     14cd59ea
+    K  M1 encendido (128 + 0.6)              14cd59ea
+    L  solo el umbral de no-habla (0.6)      14cd59ea
+    M  solo el tope de contexto (128)        14cd59ea
+
+Cero repeticiones en todas. Pero eso **no valida M1**: sin M1 tampoco falló
+nada, así que no había nada que evitar. Test inconcluyente.
+
+### Forzando el caso adverso, M1 sigue sin hacer nada
+
+Se fabricó la condición que dispara el bucle usando material auténtico: el
+silencio de sala real del propio audio (0:12-0:35) repetido hasta 92 s.
+
+    S1 solo ruido de sala, 92 s      M1 apagado → d61ca6ec   M1 encendido → d61ca6ec
+    S2 habla + ruido, 104 s          M1 apagado → 60570bb2   M1 encendido → 60570bb2
+
+**La alucinación aparece**, y es el bucle de repetición clásico:
+
+    Ahora vamos a... Ahora vamos a... Ahora vamos a... Ahora vamos a...
+
+**Y M1 encendido devuelve exactamente el mismo texto.** No ayuda poco: no
+cambia un byte.
+
+### Por qué, mirando el backend
+
+M1 mueve dos perillas (`transcription.rs`, rama `anti_hallucination`):
+
+- `no_speech_thold = 0.6` → **es el valor por defecto del backend**
+  (`transcribe-cpp-sys/src/arch/whisper/public.cpp:73`). Es un no-op por
+  construcción: escribe encima el mismo número.
+- `max_prev_context_tokens = 128` → baja de 223 (mismo fichero, línea 69). Solo
+  gobierna cuánto contexto se arrastra entre ventanas; no toca el mecanismo de
+  la repetición.
+
+Además, descartar un segmento exige **dos** condiciones a la vez
+(`model.cpp:2334`): `no_speech_prob > no_speech_thold` **y**
+`avg_logprob < logprob_thold`. M1 reescribe la primera con su propio valor y
+deja la segunda intacta.
+
+### Ajustar las perillas correctas tampoco lo arregla
+
+Siete variantes sobre el mismo PCM adverso, tocando el guardián de repetición
+(`compression_ratio_thold`, por defecto 2.4) y el de verosimilitud
+(`logprob_thold`, por defecto -1.0):
+
+    base (M1 actual)            60570bb2   bucle
+    compression 2.0             60570bb2   bucle, sin cambios
+    compression 1.8             60570bb2   bucle, sin cambios
+    logprob -0.5                60570bb2   bucle, sin cambios
+    logprob -0.3                b44aa8e7   alucinación VARIADA
+    compression 2.0 + logprob -0.5  d9805f4e   alucinación VARIADA
+    compression 1.8 + logprob -0.3  85ad0793   alucinación VARIADA
+
+**Aviso sobre la métrica, porque engaña:** las tres últimas marcan «0 % de
+5-gramas repetidos» y parecen el arreglo. Al leer el texto, lo que hacen es
+cambiar la repetición por invención variada — «Vamos a verlo a seiner forma»,
+«Y ARS anurales», «Ahora vamos a editar el embalaje». Es **peor**: deja de ser
+detectable automáticamente y pasa por texto plausible. Cualquier métrica de
+repetición sobre esto hay que contrastarla leyendo la salida.
+
+### Lo que de verdad protege es el VAD
+
+Por eso esto no se había visto nunca en uso normal: con `vad_enabled: true` (el
+valor por defecto), el silencio se descarta durante la captura y jamás llega al
+modelo. El fallo solo aparece con el VAD apagado.
+
+### Qué se puede afirmar y qué no
+
+- **Sí:** M1 corre con Whisper Large v3, no lo salta ninguna guarda, y no
+  produce errores. El camino de código está validado.
+- **No:** que M1 evite alucinaciones. No lo hace. **No se debe describir
+  Diapasón como una app con antialucinación.**
+- No es bloqueante de la demo — con los ajustes por defecto el VAD lo tapa.
+  Es bloqueante de la **afirmación**.
+
+### Arreglo propuesto, para después del 31
+
+Las perillas del decodificador ya se han demostrado insuficientes. La vía que
+sugiere la evidencia es la misma que funcionó con la tabla literal de
+reemplazos: **un guardián determinista sobre el texto de salida**, que detecte N
+n-gramas idénticos consecutivos y recorte la cola. Barato, comprobable y ataca
+el síntoma exacto reproducido aquí. Y mantener el VAD encendido por defecto,
+que es la defensa real.
