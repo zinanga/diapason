@@ -71,13 +71,18 @@ fricción**: el que la explique mejor gana un punto de usabilidad.
 
 ## 6. El fichero
 
-Publicar **`Diapason_0.4.0_aarch64.dmg`** — el del nombre en ASCII. El nombre con
+Publicar **`Diapason_0.4.1_aarch64.dmg`** — el del nombre en ASCII. El nombre con
 tilde rompe la descarga por HTTP. Son copias idénticas, pero el enlazado tiene
 que ser el mismo que se ha hasheado.
 
 ```
-SHA256  22bec1c0b082726832ce505d21a5ee61db03182339240e01a607a0e7d9759868
+SHA256  ee8216880141cd1fe36a5c1e0eb41f2df86703633fc57c9a507d4a024f2d20d4
 ```
+
+**Es la 0.4.1, no la 0.4.0.** Cambia el identificador del bundle, que antes era
+el de Handy y hacía que en un Mac que ya hubiera tenido Handy instalado el
+permiso de Accesibilidad no prendiera nunca. Importa para el jurado: van a
+probar varias entregas seguidas y casi todas son forks de Handy.
 
 ## 7. Atribución obligatoria
 

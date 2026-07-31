@@ -41,13 +41,20 @@ que los demás. Un juez que va por su décima instalación agradece la línea.
 
 ## El fichero a publicar
 
-Publicar **`Diapason_0.4.0_aarch64.dmg`**, el del nombre en ASCII: el nombre con
+Publicar **`Diapason_0.4.1_aarch64.dmg`**, el del nombre en ASCII: el nombre con
 tilde rompe la descarga por HTTP. Son copias idénticas, pero el que se enlace
 tiene que ser el mismo que se ha hasheado.
 
 ```
-SHA256  22bec1c0b082726832ce505d21a5ee61db03182339240e01a607a0e7d9759868
+SHA256  ee8216880141cd1fe36a5c1e0eb41f2df86703633fc57c9a507d4a024f2d20d4
 ```
+
+> **0.4.1 sustituye a 0.4.0.** El bundle heredaba el identificador de Handy
+> (`com.pais.handy`), y macOS indexa los permisos por identificador: en
+> cualquier Mac que hubiera tenido Handy —o cualquier otro fork del hackathon,
+> que casi todos conservan ese valor— el permiso de Accesibilidad no llegaba al
+> binario nuevo y la app se quedaba colgada esperándolo. Reproducido en un
+> MacBook con Handy instalado y resuelto con `com.zinanga.diapason`.
 
 ## QA de instalación limpia — lo hace Fer
 

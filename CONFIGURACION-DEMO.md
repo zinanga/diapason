@@ -478,7 +478,25 @@ paso deje de depender de un estado local que un remontaje reinicia.
 
 ---
 
-## 🐞 Abierto: en Privacidad sale «Handy.app», y conceder el permiso no prende
+## ✅ Resuelto en 0.4.1: en Privacidad salía «Handy.app», y el permiso no prendía
+
+> **Cerrado el 31-jul.** La causa era el **identificador del bundle**, que
+> heredábamos del upstream: `com.pais.handy`. macOS indexa los permisos por
+> identificador, así que la fila vieja de Handy seguía reclamando el registro y
+> el permiso nunca llegaba al binario nuevo.
+>
+> Se probaron y descartaron antes tres explicaciones: App Translocation (la app
+> estaba en `/Applications`, comprobado con `ps`), el proceso que no se
+> reiniciaba (se reinició de verdad, PID nuevo, y seguía fallando) y la firma
+> ad-hoc por sí sola.
+>
+> **Arreglo**: `identifier` → `com.zinanga.diapason`. Verificado en un MacBook
+> que tenía el Handy original instalado: aparece una fila propia de Diapasón,
+> independiente de la de Handy, y el interruptor se queda puesto.
+>
+> Importa más de lo que parecía: el jurado prueba varias entregas seguidas y
+> casi todas son forks de Handy que conservan ese identificador. Lo de abajo se
+> conserva como registro del diagnóstico.
 
 **Síntoma observado** (28-jul, sobre el `.dmg` 0.3.1): en
 _Ajustes → Privacidad y seguridad → Accesibilidad_ aparece una fila
