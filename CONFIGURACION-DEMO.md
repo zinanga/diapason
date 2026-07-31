@@ -945,3 +945,25 @@ reemplazos: **un guardián determinista sobre el texto de salida**, que detecte 
 n-gramas idénticos consecutivos y recorte la cola. Barato, comprobable y ataca
 el síntoma exacto reproducido aquí. Y mantener el VAD encendido por defecto,
 que es la defensa real.
+
+---
+
+# Deuda anotada para después del 31
+
+## El texto de Gatekeeper del onboarding describe un flujo que ya no existe
+
+La pantalla de bienvenida sigue diciendo «clic derecho → Abrir». Apple retiró
+ese rodeo en macOS 15 (Sequoia): con una app sin notarizar el sistema la bloquea
+igual, y la única vía es **Ajustes del Sistema → Privacidad y seguridad →
+«Abrir igualmente»**. El 31-jul de madrugada se corrigió en el post de entrega,
+en las notas de la release y en las specs de la landing, pero **no en el
+binario**, porque exigía otro build.
+
+**Por qué no era urgente, y conviene no volver a alarmarse:** el texto **se
+autoanula**. Solo se llega a la pantalla de bienvenida si ya se ha conseguido
+abrir la app, o sea, si el usuario ya resolvió el trámite que ese párrafo
+pretende explicar. Nunca lo lee quien lo necesita.
+
+**Arreglo:** actualizar la cadena en el onboarding y, ya puestos, replantear si
+esa advertencia pinta algo ahí dentro. Su sitio natural es la web y las notas de
+la release, que es donde llega el usuario antes de instalar.
