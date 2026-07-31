@@ -56,18 +56,28 @@ La app se distribuye sin firma de desarrollador de Apple, porque notarizar exige
 una cuenta de pago. **Todas las entregas del hackathon van a tener esta misma
 fricción**: el que la explique mejor gana un punto de usabilidad.
 
+⚠️ **Corregido el 31-jul de madrugada.** Desde macOS 15 (Sequoia) Apple
+**eliminó** el rodeo de «clic derecho → Abrir» para apps sin notarizar: el
+sistema la bloquea igual. La única vía hoy es el botón de Ajustes. Cualquier
+texto que siga diciendo «clic derecho → Abrir» describe un flujo que ya no
+existe en el macOS que tienen los jueces.
+
 **Versión corta, junto al botón:**
 
-> La primera vez: **clic derecho sobre la app → Abrir**.
+> La primera vez macOS la bloqueará: ve a **Ajustes del Sistema → Privacidad y
+> seguridad** y pulsa **«Abrir igualmente»**.
 
 **Versión larga, en la sección de ayuda:**
 
 > 1. Abre el `.dmg` y arrastra **Diapasón** a la carpeta Aplicaciones.
 > 2. **Expulsa el disco.** Si abres la app desde el `.dmg`, macOS la ejecuta en
 >    una ruta temporal y los permisos de micrófono no se guardan.
-> 3. Ábrela desde Aplicaciones con **clic derecho → Abrir → Abrir**. Solo hace
->    falta la primera vez.
-> 4. Concede micrófono y accesibilidad cuando los pida.
+> 3. Ábrela desde Aplicaciones. macOS avisará de que no puede comprobarla —
+>    es normal, no está notarizada.
+> 4. Ve a **Ajustes del Sistema → Privacidad y seguridad**, baja hasta el aviso
+>    sobre Diapasón y pulsa **«Abrir igualmente»**. Confirma con Touch ID o
+>    contraseña. Solo hace falta la primera vez.
+> 5. Concede micrófono y accesibilidad cuando los pida.
 
 ## 6. El fichero
 
